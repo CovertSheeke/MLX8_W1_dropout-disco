@@ -21,6 +21,12 @@ A simple PostgreSQL stack with vector support, pgAdmin, and CloudBeaver for data
    docker compose up -d
    ```
 
+  Get the `POSTGRE_URL` from Discord channel (`Dropout...`)
+
+   ![pgAdmin connection setup screenshot](./assets/pgadmin-connection-setup1.png)
+
+   ![pgAdmin connection setup screenshot](./assets/pgadmin-connection-setup2.png)
+
 3. **Access the services:**
    - **PostgreSQL:**  
      Host: `localhost`  
