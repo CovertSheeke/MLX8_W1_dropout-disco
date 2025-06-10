@@ -1,11 +1,5 @@
-from sqlalchemy import create_engine
 import pandas as pd
 from collections import Counter
-import time
-start_time = time.time()
-
-engine = create_engine("postgresql+psycopg2://sy91dhb:g5t49ao@178.156.142.230:5432/hd64m1ki")
-connection = engine.connect()
 
 punctuation_map = {
     '<': '<LESS>', '>': '<GREATER>', ',': '<COMMA>', '.': '<PERIOD>', 
@@ -19,40 +13,32 @@ punctuation_map = {
     '~': '<TILDE>', '`': '<BACKTICK>'
 }
 
-def tokenize_titles(titles): 
-    # Preprocess and tokenize
-    all_words = []
+def tokeniser(text): 
+    """
+    Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words,
+    and building a vocabulary of words that appear more than the frequency threshold.
+
+    Args:
+        text (str): A single string.
+
+    Returns:
+        dict: A dictionary mapping each word to a unique index.
+    """
+    # Convert to lowercase
+    text = text.lower()
     
-    for title in titles:
-        # Convert to lowercase
-        title = title.lower()
-        
-        # Replace all punctuation with angle bracket words        
-        for punct, replacement in punctuation_map.items():
-            title = title.replace(punct, f' {replacement} ')
-        
-        # Split into words (handles multiple spaces)
-        words = title.split()
-        
-        all_words.extend(words)
+    # Replace all punctuation with angle bracket words        
+    for punct, replacement in punctuation_map.items():
+        text = text.replace(punct, f' {replacement} ')
+    
+    # Split into words (handles multiple spaces)
+    words = text.split() 
     
     # Build vocabulary (word to index mapping)
-    word_counts = Counter(all_words)
+    word_counts = Counter(words)
     # Remove words with frequency below threshold (e.g., 2)
     threshold = 2
     word_counts = Counter({word: count for word, count in word_counts.items() if count >= threshold})
     vocab = {word: idx for idx, word in enumerate(word_counts.keys())}
     
     return vocab
-
-titles_df = pd.read_sql_query("SELECT title FROM hacker_news.items WHERE title IS NOT NULL ORDER BY id LIMIT 100", connection)
-
-# Usage:
-result = tokenize_titles(titles_df['title'])
-# print(result)
-print(len(result))
-
-print("Elapsed time: {:.2f} seconds".format(time.time() - start_time))
-
-# Close the connection
-connection.close()
