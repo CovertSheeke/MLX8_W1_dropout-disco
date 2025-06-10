@@ -8,12 +8,12 @@ engine = create_engine("postgresql+psycopg2://sy91dhb:g5t49ao@178.156.142.230:54
 connection = engine.connect()
 
 
-titles_df = pd.read_sql_query("SELECT title FROM hacker_news.items WHERE title IS NOT NULL ORDER BY id LIMIT 100", connection)
+titles_df = pd.read_sql_query("SELECT title FROM hacker_news.items WHERE title IS NOT NULL ORDER BY id LIMIT 100000", connection)
 # Concatenate all titles into one long string
 text = " ".join(titles_df['title'].tolist())
 
 # Usage:
-result = tokeniser(text)
+result = tokeniser(text, frequency_threshold=10)
 print(result)
 print(len(result))
 

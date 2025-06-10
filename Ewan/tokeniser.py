@@ -13,7 +13,7 @@ punctuation_map = {
     '~': '<TILDE>', '`': '<BACKTICK>'
 }
 
-def tokeniser(text): 
+def tokeniser(text, frequency_threshold): 
     """
     Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words,
     and building a vocabulary of words that appear more than the frequency threshold.
@@ -38,7 +38,7 @@ def tokeniser(text):
     word_counts = Counter(words)
     # Remove words with frequency below threshold (e.g., 2)
     threshold = 2
-    word_counts = Counter({word: count for word, count in word_counts.items() if count >= threshold})
+    word_counts = Counter({word: count for word, count in word_counts.items() if count >= frequency_threshold})
     vocab = {word: idx for idx, word in enumerate(word_counts.keys())}
     
     return vocab
