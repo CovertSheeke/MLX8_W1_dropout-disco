@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug db-utils.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/postgresql/db-utils.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/postgresql/.env",
+            "cwd": "${workspaceFolder}/postgresql"
+        },
+        {
+            "name": "Debug data-processing.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/postgresql/data-processing.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/postgresql/.env",
+            "cwd": "${workspaceFolder}/postgresql"
+        }
+    ]
+}

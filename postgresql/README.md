@@ -333,9 +333,75 @@ WHERE score IS NOT NULL;
 
 ---
 
-This is the repository for MLX8 week 1.
+## Data Length Statistics
 
-In this repo we will be attempting to create a upvote prediction model.
+The following SQL scripts were used to generate the statistics below:
+
+```sql
+-- For hacker_news.items (overall)
+SELECT
+  MIN(LENGTH(title)) AS min_title_len,
+  MAX(LENGTH(title)) AS max_title_len,
+  AVG(LENGTH(title)) AS avg_title_len,
+  MIN(LENGTH(text)) AS min_text_len,
+  MAX(LENGTH(text)) AS max_text_len,
+  AVG(LENGTH(text)) AS avg_text_len,
+  MIN(LENGTH(url)) AS min_url_len,
+  MAX(LENGTH(url)) AS max_url_len,
+  AVG(LENGTH(url)) AS avg_url_len,
+  MIN(LENGTH("by")) AS min_by_len,
+  MAX(LENGTH("by")) AS max_by_len,
+  AVG(LENGTH("by")) AS avg_by_len
+FROM hacker_news.items;
+
+-- For hacker_news.items (grouped by type)
+SELECT
+  type,
+  MIN(LENGTH(title)) AS min_title_len,
+  MAX(LENGTH(title)) AS max_title_len,
+  AVG(LENGTH(title)) AS avg_title_len,
+  MIN(LENGTH(text)) AS min_text_len,
+  MAX(LENGTH(text)) AS max_text_len,
+  AVG(LENGTH(text)) AS avg_text_len,
+  MIN(LENGTH(url)) AS min_url_len,
+  MAX(LENGTH(url)) AS max_url_len,
+  AVG(LENGTH(url)) AS avg_url_len,
+  MIN(LENGTH("by")) AS min_by_len,
+  MAX(LENGTH("by")) AS max_by_len,
+  AVG(LENGTH("by")) AS avg_by_len
+FROM hacker_news.items
+GROUP BY type
+ORDER BY type;
+
+-- For hacker_news.users
+SELECT
+  MIN(LENGTH(id)) AS min_id_len,
+  MAX(LENGTH(id)) AS max_id_len,
+  AVG(LENGTH(id)) AS avg_id_len,
+  MIN(LENGTH(about)) AS min_about_len,
+  MAX(LENGTH(about)) AS max_about_len,
+  AVG(LENGTH(about)) AS avg_about_len
+FROM hacker_news.users;
+```
+
+### hacker_news.items (overall)
+
+| Metric           | min   | max    | avg         |
+|------------------|-------|--------|-------------|
+| title length     | 0     | 198    | 48.58       |
+| text length      | 0     | 100418 | 377.14      |
+| url length       | 1     | 250    | 71.75       |
+| by length        | 2     | 15     | 8.37        |
+
+### hacker_news.items string column length (by type)
+
+| type     | min_title | max_title | avg_title | min_text | max_text | avg_text | min_url | max_url | avg_url | min_by | max_by | avg_by |
+|----------|----------|-----------|-----------|--------------|--------------|--------------|-------------|-------|--------|------|-------|-------|
+| comment  |     |       |         | 0        | 100418       | 387.56       |       |        |         | 2       | 15      | 8.35       |
+| job      | 6    | 117      | 59.40         | 0            | 8816         | 924.21       | 14          | 234         | 49.92       | 2       | 15         | 8.20       |
+| poll     | 5        | 93         | 46.66      | 0     | 5434         | 275.18       |       |     |        | 2    | 15       | 7.95       |
+| pollopt  | 3          | 80         | 32.91         | 1      | 566     | 20.31     | 16        | 48       | 38.33       | 2      | 15      | 8.06       |
+| story    | 0             | 198           | 48.54      | 0 | 27405 | 138.14 | 1 | 250 | 71.80 | 2 | 15 | 8.49 |
 
 
 ### HN News PostgreSQL DML
@@ -425,4 +491,3 @@ GRANT SELECT ON TABLE hacker_news.users TO sy91dhb;
 
 GRANT ALL ON TABLE hacker_news.users TO zer4bab;
 ```
-
