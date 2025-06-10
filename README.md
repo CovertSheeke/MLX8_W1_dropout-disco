@@ -1,4 +1,4 @@
-# MLX8 Week 1
+# MLX8 Week 1 Predict HN Upvotes
 
 In this repo we will be attempting to create a upvote prediction model.
 

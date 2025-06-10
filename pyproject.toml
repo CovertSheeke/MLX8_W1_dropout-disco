@@ -18,5 +18,6 @@ dependencies = [
     "torch<=2.2",
     "pyarrow>=14.0.0,<15.0.0",
     "gensim>=4.3.3",
-    "wandb>=0.20.1"
+    "wandb>=0.20.1",
+    "tqdm>=4.67.1",
 ]

@@ -18,6 +18,15 @@
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/postgresql/.env",
             "cwd": "${workspaceFolder}/postgresql"
+        },
+        {
+            "name": "Debug word2vec-text8.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/text8/word2vec-text8.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/text8/.env",
+            "cwd": "${workspaceFolder}/text8"
         }
     ]
 }
