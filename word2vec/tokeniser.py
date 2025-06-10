@@ -35,7 +35,7 @@ punctuation_map = {
 }
 
 
-def tokenise(text, frequency_threshold):
+def tokenise(text):
     """
     Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words,
     and building a vocabulary of words that appear more than the frequency threshold.
@@ -55,11 +55,13 @@ def tokenise(text, frequency_threshold):
 
     # Split into words (handles multiple spaces)
     words = text.split()
+    return words
 
+
+def build_vocab(tokens, frequency_threshold=2):
     # Build vocabulary (word to index mapping)
-    word_counts = Counter(words)
+    word_counts = Counter(tokens)
     # Remove words with frequency below threshold (e.g., 2)
-    threshold = 2
     word_counts = Counter(
         {
             word: count

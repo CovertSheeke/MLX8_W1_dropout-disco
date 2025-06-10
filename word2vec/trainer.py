@@ -59,7 +59,8 @@ class Word2VecTrainer:
     def train(self):
         for epoch in range(1, self.epochs + 1):
             self._train_epoch()
-            self._validate_epoch()
+            if self.val_dl is not None:
+                self._validate_epoch()
             logger.debug(
                 "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
                     epoch,
