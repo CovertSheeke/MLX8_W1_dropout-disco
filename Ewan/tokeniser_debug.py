@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 import pandas as pd
-from tokeniser import tokeniser
+from tokeniser import tokenise
 import time
 start_time = time.time()
 
@@ -13,7 +13,7 @@ titles_df = pd.read_sql_query("SELECT title FROM hacker_news.items WHERE title I
 text = " ".join(titles_df['title'].tolist())
 
 # Usage:
-result = tokeniser(text, frequency_threshold=10)
+result = tokenise(text, frequency_threshold=10)
 print(result)
 print(len(result))
 

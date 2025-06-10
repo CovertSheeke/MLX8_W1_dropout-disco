@@ -13,7 +13,7 @@ punctuation_map = {
     '~': '<TILDE>', '`': '<BACKTICK>'
 }
 
-def tokeniser(text, frequency_threshold): 
+def tokenise(text, frequency_threshold): 
     """
     Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words,
     and building a vocabulary of words that appear more than the frequency threshold.
