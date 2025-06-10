@@ -1,7 +1,8 @@
-import pandas as pd
 from collections import Counter
 
-punctuation_map = {
+
+UNK_TOKEN = "<UNK>"
+PUNCTUATION_MAP = {
     "<": "<LESS>",
     ">": "<GREATER>",
     ",": "<COMMA>",
@@ -35,10 +36,10 @@ punctuation_map = {
 }
 
 
-def tokenise(text):
+# TODO: can we improve? e.g. remove stop words, stem/lemmatise, do frequency subsampling etc.
+def tokenise(text: str) -> list[str]:
     """
-    Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words,
-    and building a vocabulary of words that appear more than the frequency threshold.
+    Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words.
 
     Args:
         text (str): A single string.
@@ -50,7 +51,7 @@ def tokenise(text):
     text = text.lower()
 
     # Replace all punctuation with angle bracket words
-    for punct, replacement in punctuation_map.items():
+    for punct, replacement in PUNCTUATION_MAP.items():
         text = text.replace(punct, f" {replacement} ")
 
     # Split into words (handles multiple spaces)
@@ -58,17 +59,26 @@ def tokenise(text):
     return words
 
 
-def build_vocab(tokens, frequency_threshold=2):
-    # Build vocabulary (word to index mapping)
+def build_vocab(
+    tokens: list[str],
+    min_freq: int = 5,
+) -> dict[str, int]:
+    """
+    Builds a vocabulary of words that appear more than the frequency threshold.
+    """
     word_counts = Counter(tokens)
-    # Remove words with frequency below threshold (e.g., 2)
-    word_counts = Counter(
-        {
-            word: count
-            for word, count in word_counts.items()
-            if count >= frequency_threshold
-        }
-    )
-    vocab = {word: idx for idx, word in enumerate(word_counts.keys())}
-
+    # Remove words with frequency below threshold
+    word_counts = [UNK_TOKEN] + [
+        word for word, count in word_counts.items() if count >= min_freq
+    ]
+    vocab = {word: idx for idx, word in enumerate(word_counts)}
     return vocab
+
+
+def get_tokens_as_indices(tokens: list[str], vocab: dict) -> list[int]:
+    """
+    Converts a list of tokens to their corresponding indices using the provided vocab mapping.
+    This is to ensure we have fast, random-access, constant-sized, GPU-friendly data upfront.
+    """
+    unk = vocab[UNK_TOKEN]
+    return [vocab.get(t, unk) for t in tokens]

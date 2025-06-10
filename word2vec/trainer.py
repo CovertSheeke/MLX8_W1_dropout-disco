@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 from torch.optim.lr_scheduler import LambdaLR
+from tqdm import tqdm
 from wandb.sdk.wandb_run import Run
 
 
@@ -77,15 +78,19 @@ class Word2VecTrainer:
                 }
             )
 
+            # step the learning rate down after each epoch
+            self.lr_scheduler.step()
+
             if self.checkpoint_frequency:
                 self._save_checkpoint(epoch)
 
+    # TODO: could implement negative sampling to speed up training runs?
     def _train_epoch(self):
         self.model.train()
         running_loss = []
 
         # TODO: make sure this logic (and val) reflect final dataloader setup
-        for i, batch_data in enumerate(self.train_dl, 1):
+        for i, batch_data in tqdm(enumerate(self.train_dl, 1)):
             inputs = batch_data[0].to(self.device)
             labels = batch_data[1].to(self.device)
 
@@ -95,10 +100,11 @@ class Word2VecTrainer:
 
             # run back propagation and update weights
             loss.backward()
-            self.lr_scheduler.step()
+            self.optimizer.step()
 
             running_loss.append(loss.item())
 
+            # TODO: check that breaking off at this point is sensible
             if i == self.train_steps:
                 break
 
@@ -110,7 +116,7 @@ class Word2VecTrainer:
         running_loss = []
 
         with torch.no_grad():
-            for i, batch_data in enumerate(self.val_dl, 1):
+            for i, batch_data in tqdm(enumerate(self.val_dl, 1)):
                 inputs = batch_data[0].to(self.device)
                 labels = batch_data[1].to(self.device)
 

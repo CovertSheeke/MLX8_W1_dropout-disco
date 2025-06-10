@@ -190,7 +190,8 @@ __MACOSX/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-# weights and biases
+# misc
 wandb/
 .data/*
 !.data/.gitkeep
+.vscode/
