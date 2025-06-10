@@ -59,6 +59,7 @@ def build_cbow_dataset(
 ) -> tuple[CBOWDataset, dict]:
     parquet_path = os.path.join(DATA_DIR, TRAIN_PROCESSED_FILENAME)
     logger.debug(f"Loading data from {parquet_path}...")
+    # TODO: also get comments from HN, to be appended to the corpus
     hn_posts = pd.read_parquet(parquet_path)
     # show some basic info about the data we pulled from parquet
     logger.info(f"Found {len(hn_posts)} records at {parquet_path}: {hn_posts.info()}")
