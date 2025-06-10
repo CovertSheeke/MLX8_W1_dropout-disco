@@ -173,4 +173,18 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# macOS folder attributes
+__MACOSX/
+
+# macOS Finder settings
+.DS_Store?
+.Spotlight-V100
+.Trashes
+.fseventsd
+
 # End of https://www.toptal.com/developers/gitignore/api/python
