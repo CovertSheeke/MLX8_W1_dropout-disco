@@ -187,4 +187,7 @@ __MACOSX/
 .Trashes
 .fseventsd
 
+# PostgreSQL data directory
+.data/
+
 # End of https://www.toptal.com/developers/gitignore/api/python
