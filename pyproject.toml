@@ -9,7 +9,9 @@ dependencies = [
     "notebook>=7.4.3",
     "numpy>=2.3.0",
     "pandas>=2.3.0",
+    "psycopg>=3.2.9",
     "psycopg2-binary>=2.9.10",
     "seaborn>=0.13.2",
     "sqlalchemy>=2.0.41",
+    "torch>=2.7.1",
 ]
