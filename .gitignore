@@ -199,3 +199,21 @@ wandb/
 .data/*
 !.data/.gitkeep
 .vscode/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.example
+
+# Data and model outputs
+.data/
+
+# OS generated files
+.DS_Store
