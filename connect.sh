@@ -13,4 +13,6 @@ else
     PRIVATE_KEY="$2"
 fi
 
+# script expects to find your private key in ~/.ssh/
+# also a good place to put the public key (as .pub), both pulled from MLX acct
 ssh -i "$HOME/.ssh/$PRIVATE_KEY" -p 4422 "root@$IP" -v
