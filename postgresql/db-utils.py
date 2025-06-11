@@ -10,7 +10,14 @@ load_dotenv()
 
 # Get configuration from environment variables
 DB_CONNECTION_STRING = os.getenv("DB_CONNECTION_STRING")
-TOTAL_RECORDS_TO_FETCH = int(os.getenv("TOTAL_RECORDS_TO_FETCH", "200000"))
+
+# Handle TOTAL_RECORDS_TO_FETCH: if empty or not set, use None (no limit)
+_total_records_env = os.getenv("TOTAL_RECORDS_TO_FETCH", "").strip()
+if _total_records_env == "":
+    TOTAL_RECORDS_TO_FETCH = None
+else:
+    TOTAL_RECORDS_TO_FETCH = int(_total_records_env)
+
 TEST_SIZE = float(os.getenv("TEST_SIZE", "0.2"))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", "42"))
 TRAIN_FILE = os.getenv("TRAIN_FILE", "./data/hn_posts_train.parquet")

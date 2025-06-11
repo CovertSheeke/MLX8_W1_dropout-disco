@@ -7,13 +7,17 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from urllib.parse import urlparse # For domain extraction
 import os
+import sys
+from tqdm import tqdm
 
 TRAIN_FILE = os.environ.get("TRAIN_FILE", "./.data/hn_posts_train.parquet")
 TEST_FILE = os.environ.get("TEST_FILE", "./.data/hn_posts_test.parquet")
 PROCESSED_TRAIN_FILE = os.environ.get("PROCESSED_TRAIN_FILE", "./.data/hn_posts_train_processed.parquet")
 PROCESSED_TEST_FILE = os.environ.get("PROCESSED_TEST_FILE", "./.data/hn_posts_test_processed.parquet")
 VOCAB_PATH = os.environ.get("VOCAB_PATH", "./.data/vocabulary.json")
-DOMAIN_VOCAB_PATH = os.environ.get("DOMAIN_VOCAB_PATH", "./.data/domain_vocabulary.json")
+DOMAIN_PARQUET_PATH = os.environ.get("DOMAIN_PARQUET_PATH", "./.data/domain.parquet")
+MIN_DOMAIN_FREQ = int(os.environ.get("MIN_DOMAIN_FREQ", 100))
+MAX_TITLE_TOKENS = int(os.environ.get("MAX_TITLE_TOKENS", 50))
 
 # --- 1. Constants and Mappings ---
 # Define a mapping for 'type' (can be learned as embeddings later or one-hot encoded)
@@ -64,6 +68,10 @@ def build_vocabulary(tokenized_texts, min_freq=5):
     Builds a vocabulary mapping tokens to IDs.
     Includes special tokens: <PAD>, <UNK>.
     Removes tokens below a certain frequency.
+
+    NOTE: If using a pre-trained word2vec model, you do NOT need to build your own vocabulary.
+    The vocabulary from the pre-trained model should be used for token-to-vector mapping.
+    This function is left here for reference and for cases where you want to train embeddings from scratch.
     """
     all_tokens = [token for sublist in tokenized_texts for token in sublist]
     token_counts = Counter(all_tokens)
@@ -83,7 +91,13 @@ def build_vocabulary(tokenized_texts, min_freq=5):
     return vocabulary, id_to_token
 
 def tokens_to_ids(tokens, vocabulary):
-    """Converts a list of tokens to a list of token IDs."""
+    """
+    Converts a list of tokens to a list of token IDs.
+
+    NOTE: If using a pre-trained word2vec model, you do NOT need to convert tokens to integer IDs using a custom vocabulary.
+    Instead, you should look up the word vectors directly from the pre-trained model.
+    This function is left here for reference and for cases where you want to train embeddings from scratch.
+    """
     unk_id = vocabulary.get('<UNK>')
     return [vocabulary.get(token, unk_id) for token in tokens]
 
@@ -116,21 +130,18 @@ def get_domain_id(domain):
 
 # --- 5. PyTorch Dataset for Regression (Hacker News Titles + Features) ---
 class HNTitlesAndFeaturesDataset(Dataset):
-    def __init__(self, df, vocabulary, max_len=None):
+    def __init__(self, df, vocabulary=None, max_len=None):
         self.titles = df['title'].tolist()
         self.scores = df['score'].tolist()
-        self.vocabulary = vocabulary
         self.max_len = max_len # Optional: pad/truncate titles to a max length
 
         # Pre-process additional features and store them as lists
-        # Ensure these columns exist and are appropriately type-casted before passing df
         self.types = df['type_id'].tolist()
         self.hours = df['hour_of_day'].tolist()
         self.days_of_week = df['day_of_week_id'].tolist()
         self.karmas = df['karma'].tolist()
         self.descendants = df['descendants'].tolist()
         self.domain_ids = df['domain_id'].tolist()
-
 
     def __len__(self):
         return len(self.titles)
@@ -139,17 +150,14 @@ class HNTitlesAndFeaturesDataset(Dataset):
         title = self.titles[idx]
         score = self.scores[idx]
 
-        # Tokenize and convert title to IDs
-        tokens = simple_tokenize(title)
-        token_ids = tokens_to_ids(tokens, self.vocabulary)
+        # Tokenization and vocabulary are not used anymore.
+        # Instead, you should use your pre-trained word2vec tokenizer/vectorizer in your model pipeline.
+        # Here, just return the raw title string.
+        # If you want to pad/truncate, do it in your collate_fn or model pipeline.
 
-        if self.max_len:
-            if len(token_ids) > self.max_len:
-                token_ids = token_ids[:self.max_len]
-            else:
-                pad_id = self.vocabulary.get('<PAD>')
-                token_ids = token_ids + [pad_id] * (self.max_len - len(token_ids))
-        
+        # For backward compatibility, return an empty tensor for token_ids.
+        token_ids = torch.empty(0, dtype=torch.long)
+
         # Prepare non-textual features
         # Ensure these are float or long as appropriate for PyTorch.
         # Categorical features that might become embeddings: type, day_of_week, domain
@@ -185,15 +193,154 @@ class HNTitlesAndFeaturesDataset(Dataset):
         }
 
         return (
-            torch.tensor(token_ids, dtype=torch.long), 
-            features, 
+            token_ids,  # placeholder, not used
+            features,
             torch.tensor(score, dtype=torch.float)
         )
 
+def process_domains(train_path, test_path, domain_parquet_path):
+    """
+    Processes both train and test datasets to build a domain-to-id mapping,
+    saves the mapping as a parquet file.
+
+    Only loads the 'url' column to save memory.
+    Displays progress and domain counts for train and test.
+    """
+    print("Processing domains from train and test datasets...")
+    # Only load 'url' column to save memory
+    df_train = pd.read_parquet(train_path, columns=['url'])
+    df_test = pd.read_parquet(test_path, columns=['url'])
+
+    print(f"Train set: {len(df_train)} rows, Test set: {len(df_test)} rows")
+
+    # Merge before extraction for memory efficiency and progress bar
+    df_all = pd.concat([df_train, df_test], ignore_index=True)
+    print(f"Total records to process: {len(df_all)}")
+
+    # Extract domains with tqdm progress bar
+    df_all['domain'] = [extract_domain(url) for url in tqdm(df_all['url'], desc="Extracting domains")]
+
+    # Show top domains in each split
+    train_domain_counts = Counter(df_all.loc[:len(df_train)-1, 'domain'].dropna())
+    test_domain_counts = Counter(df_all.loc[len(df_train):, 'domain'].dropna())
+    print("\nTop 10 domains in train set:")
+    for domain, count in train_domain_counts.most_common(10):
+        print(f"  {domain}: {count}")
+    print("\nTop 10 domains in test set:")
+    for domain, count in test_domain_counts.most_common(10):
+        print(f"  {domain}: {count}")
+
+    # Count all domains for mapping
+    domain_counts = Counter(df_all['domain'].dropna())
+    min_domain_freq = MIN_DOMAIN_FREQ  # Use value from .env
+    frequent_domains = {d for d, c in domain_counts.items() if c >= min_domain_freq}
+    print(f"\nNumber of domains with >= {min_domain_freq} occurrences: {len(frequent_domains)}")
+
+    domain_vocab = {'<UNK_DOMAIN>': 0}
+    for domain in sorted(list(frequent_domains)):
+        if domain not in domain_vocab:
+            domain_vocab[domain] = len(domain_vocab)
+    # Save as parquet
+    domain_df = pd.DataFrame(list(domain_vocab.items()), columns=['domain', 'domain_id'])
+    print(f"Saving Domain mapping to {domain_parquet_path} ...")
+
+    domain_df.to_parquet(domain_parquet_path, index=False)
+    
+def load_domain_vocab_from_parquet(domain_parquet_path):
+    """
+    Loads domain-to-id mapping from a parquet file and returns as a dict.
+    """
+    domain_df = pd.read_parquet(domain_parquet_path)
+    return dict(zip(domain_df['domain'], domain_df['domain_id']))
+
+# --- 6. Feature Engineering Functions ---
+def apply_feature_engineering(df, split):
+    """
+    Applies feature engineering to the DataFrame in-place.
+    Handles type, time, domain features.
+    split: "train" or "test"
+    """
+    # Process 'type'
+    if 'unknown' not in TYPE_MAPPING:
+        TYPE_MAPPING['unknown'] = max(TYPE_MAPPING.values()) + 1
+    print("Mapping types to type_id...")
+    df['type_id'] = [TYPE_MAPPING.get(t, TYPE_MAPPING['unknown']) for t in tqdm(df['type'], desc="Type mapping")]
+
+    # Process 'time'
+    print("Parsing time column...")
+    df['time'] = pd.to_datetime(df['time'])
+    print("Extracting hour_of_day...")
+    df['hour_of_day'] = [t.hour for t in tqdm(df['time'], desc="Hour of day")]
+    print("Extracting day_of_week...")
+    df['day_of_week'] = [t.dayofweek for t in tqdm(df['time'], desc="Day of week")]
+    print("Mapping day_of_week to day_of_week_id...")
+    df['day_of_week_id'] = [DAY_OF_WEEK_MAPPING.get(d, 0) for d in tqdm(df['day_of_week'], desc="Day of week mapping")]
+
+    # Process 'url' for 'domain'
+    print("Extracting domains from URLs...")
+    df['domain'] = [extract_domain(url) for url in tqdm(df['url'], desc="Extracting domains")]
+
+    # --- Domain Vocabulary ---
+    global DOMAIN_VOCAB, DOMAIN_UNK_ID
+    if os.path.exists(DOMAIN_PARQUET_PATH):
+        DOMAIN_VOCAB = load_domain_vocab_from_parquet(DOMAIN_PARQUET_PATH)
+        DOMAIN_UNK_ID = DOMAIN_VOCAB['<UNK_DOMAIN>']
+    else:
+        print(f"Domain parquet file not found at {DOMAIN_PARQUET_PATH}. Please run with --domain first.")
+        sys.exit(1)
+
+    print("Mapping domains to IDs...")
+    df['domain_id'] = [get_domain_id(domain) for domain in tqdm(df['domain'], desc="Mapping domain to ID")]
+    df['domain_id'] = pd.Series(df['domain_id'], dtype=int)
+    print(f"Number of unique domains (after freq filter): {len(DOMAIN_VOCAB)}")
+    print(f"Sample Domain IDs: {df['domain_id'].value_counts().head()}")
+
+    print("\nSample processed data with new features:")
+    print(df[['title', 'score', 'type_id', 'hour_of_day', 'day_of_week_id', 'karma', 'descendants', 'domain_id']].head())
+    return None
+
 # --- Main execution example for data_processing.py ---
 if __name__ == "__main__":
-    # Choose which split to process
-    split = os.environ.get("SPLIT", "train")  # "train" or "test"
+    if not os.path.exists(DOMAIN_PARQUET_PATH):
+        print(f"Domain parquet file not found at {DOMAIN_PARQUET_PATH}.")
+        print("Please run: python data-processing.py --domain")
+        sys.exit(1)
+
+    # Handle --domain with overwrite prompt
+    if "--domain" in sys.argv:
+        if os.path.exists(DOMAIN_PARQUET_PATH):
+            resp = input(f"{DOMAIN_PARQUET_PATH} already exists. Overwrite? [Y/n]: ").strip().lower()
+            if resp not in ("y", "yes", ""):
+                print("Aborted domain processing.")
+                sys.exit(0)
+        process_domains(TRAIN_FILE, TEST_FILE, DOMAIN_PARQUET_PATH)
+        sys.exit(0)
+    
+    # Handle --domain-list [N]
+    if "--domain-list" in sys.argv:
+        idx = sys.argv.index("--domain-list")
+        try:
+            n = int(sys.argv[idx + 1])
+        except (IndexError, ValueError):
+            n = 100
+        if not os.path.exists(DOMAIN_PARQUET_PATH):
+            print(f"Domain parquet file not found at {DOMAIN_PARQUET_PATH}.")
+            print("Please run: python data-processing.py --domain")
+            sys.exit(1)
+        domain_df = pd.read_parquet(DOMAIN_PARQUET_PATH)
+        # Show top domains by domain_id, but sort by most frequent (highest domain_id first)
+        print(f"Top {n} domains in {DOMAIN_PARQUET_PATH}:")
+        print(domain_df.sort_values("domain_id", ascending=False).head(n).to_string(index=False))
+        sys.exit(0)
+
+    split = os.environ.get("SPLIT", "train")
+    if "--test" in sys.argv:
+        print("Overriding split to 'test' due to command line argument.")
+        split = "test"
+    elif "--train" in sys.argv:
+        print("Overriding split to 'train' due to command line argument.")
+        split = "train"
+
     if split == "train":
         parquet_path = TRAIN_FILE
         processed_path = PROCESSED_TRAIN_FILE
@@ -212,61 +359,7 @@ if __name__ == "__main__":
 
     # --- 6. Apply Feature Engineering to DataFrame ---
     print("\nApplying feature engineering...")
-
-    # Process 'type'
-    # Add 'unknown' to TYPE_MAPPING if not present
-    if 'unknown' not in TYPE_MAPPING:
-        TYPE_MAPPING['unknown'] = max(TYPE_MAPPING.values()) + 1
-    df_hn['type_id'] = df_hn['type'].map(TYPE_MAPPING).fillna(TYPE_MAPPING['unknown']).astype(int)
-
-    # Process 'time'
-    df_hn['time'] = pd.to_datetime(df_hn['time'])
-    df_hn['hour_of_day'] = df_hn['time'].dt.hour
-    df_hn['day_of_week'] = df_hn['time'].dt.dayofweek # Monday=0, Sunday=6
-    df_hn['day_of_week_id'] = df_hn['day_of_week'].map(DAY_OF_WEEK_MAPPING).fillna(0).astype(int)
-
-    # Process 'url' for 'domain'
-    df_hn['domain'] = df_hn['url'].apply(extract_domain)
-
-    # --- Domain Vocabulary ---
-    if split == "train":
-        # Build domain vocab from train set
-        domain_counts = Counter(df_hn['domain'].dropna())
-        min_domain_freq = 50
-        frequent_domains = {d for d, c in domain_counts.items() if c >= min_domain_freq}
-        DOMAIN_VOCAB = {'<UNK_DOMAIN>': 0}
-        for domain in sorted(list(frequent_domains)):
-            if domain not in DOMAIN_VOCAB:
-                DOMAIN_VOCAB[domain] = len(DOMAIN_VOCAB)
-        DOMAIN_UNK_ID = DOMAIN_VOCAB['<UNK_DOMAIN>']
-        # Save domain vocab
-        with open(DOMAIN_VOCAB_PATH, "w") as f:
-            json.dump(DOMAIN_VOCAB, f)
-        print(f"Domain vocabulary saved to {DOMAIN_VOCAB_PATH}")
-    else:
-        # Load domain vocab from train
-        with open(DOMAIN_VOCAB_PATH, "r") as f:
-            DOMAIN_VOCAB = json.load(f)
-        DOMAIN_UNK_ID = DOMAIN_VOCAB['<UNK_DOMAIN>']
-
-    df_hn['domain_id'] = df_hn['domain'].apply(get_domain_id).astype(int)
-    print(f"Number of unique domains (after freq filter): {len(DOMAIN_VOCAB)}")
-    print(f"Sample Domain IDs: {df_hn['domain_id'].value_counts().head()}")
-
-    # --- Tokenization & Vocabulary ---
-    df_hn['tokenized_title'] = df_hn['title'].apply(simple_tokenize)
-    if split == "train":
-        vocab, id_to_token = build_vocabulary(df_hn['tokenized_title'].tolist(), min_freq=5)
-        with open(VOCAB_PATH, "w") as f:
-            json.dump(vocab, f)
-        print(f"Title vocabulary saved to {VOCAB_PATH}")
-    else:
-        with open(VOCAB_PATH, "r") as f:
-            vocab = json.load(f)
-    df_hn['title_ids'] = df_hn['tokenized_title'].apply(lambda x: tokens_to_ids(x, vocab))
-
-    print("\nSample processed data with new features:")
-    print(df_hn[['title', 'score', 'type_id', 'hour_of_day', 'day_of_week_id', 'karma', 'descendants', 'domain_id']].head())
+    apply_feature_engineering(df_hn, split)
 
     # --- Save processed data ---
     df_hn.to_parquet(processed_path, index=False)
@@ -277,28 +370,5 @@ if __name__ == "__main__":
     df_hn.info()
     print(f"\nProcessed {split} DataFrame describe:")
     print(df_hn.describe(include='all'))
-
-    # --- Create PyTorch Dataset and DataLoader ---
-    # For demonstration, let's use a max_len of 50 for padding/truncation
-    hn_dataset = HNTitlesAndFeaturesDataset(df_hn, vocab, max_len=50)
-    hn_dataloader = DataLoader(hn_dataset, batch_size=32, shuffle=True)
-
-    print(f"\nDataset size: {len(hn_dataset)} posts")
-    print(f"Number of batches (batch_size=32): {len(hn_dataloader)}")
-
-    # Get one batch from the DataLoader to verify output
-    sample_batch_token_ids, sample_batch_features, sample_batch_scores = next(iter(hn_dataloader))
-    
-    print("\nSample Batch of Token IDs (first post):")
-    print(sample_batch_token_ids[0])
-    print(f"Shape: {sample_batch_token_ids.shape}")
-
-    print("\nSample Batch of Features (first post):")
-    for k, v in sample_batch_features.items():
-        print(f"  {k}: {v[0].item()} (Shape: {v.shape}, Dtype: {v.dtype})")
-    
-    print("\nSample Batch of Scores (first post):")
-    print(sample_batch_scores[0].item())
-    print(f"Shape: {sample_batch_scores.shape}")
 
     print("\nAll data processing completed.")
