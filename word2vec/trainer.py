@@ -62,19 +62,32 @@ class Word2VecTrainer:
             self._train_epoch()
             if self.val_dl is not None:
                 self._validate_epoch()
+                logger.debug(
+                    "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
+                        epoch,
+                        self.epochs,
+                        self.loss["train"][-1],
+                        self.loss["val"][-1],
+                    )
+                )
+                self.wandb_runner.log(
+                    {
+                        "epoch": epoch,
+                        "train_loss": self.loss["train"][-1],
+                        "val_loss": self.loss["val"][-1],
+                    }
+                )
             logger.debug(
-                "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
+                "Epoch: {}/{}, Train Loss={:.5f}".format(
                     epoch,
                     self.epochs,
                     self.loss["train"][-1],
-                    self.loss["val"][-1],
                 )
             )
             self.wandb_runner.log(
                 {
                     "epoch": epoch,
                     "train_loss": self.loss["train"][-1],
-                    "val_loss": self.loss["val"][-1],
                 }
             )
 

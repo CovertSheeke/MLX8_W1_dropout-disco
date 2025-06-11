@@ -27,9 +27,9 @@ WANDB_PROJECT = "word2vec"
 CONFIG = {
     "architecture": "cbow",
     "dataset": "text8-titles",
-    "context_size": 3,
+    "context_size": 4,
     "freq_threshold": 5,
-    "epochs": 3,
+    "epochs": 100,
     "batch_size": 1024,
     "learning_rate": 1e-2,
     "embedding_dimensions": 100,
