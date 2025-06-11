@@ -271,10 +271,11 @@ def word2vec_tests(model_path):
     word2idx = checkpoint['word2idx']
     idx2word = checkpoint['idx2word']
 
-    print("SGNS top {0} similar to 'king':".format(TOP_K), most_similar(sgns_emb, 'king', word2idx, idx2word, TOP_K))
-    print("SGNS top {0} similar to 'queen':".format(TOP_K), most_similar(sgns_emb, 'queen', word2idx, idx2word, TOP_K))
-    print("CBOW top {0} similar to 'king':".format(TOP_K), most_similar(cbow_emb, 'king', word2idx, idx2word, TOP_K))
-    print("CBOW top {0} similar to 'queen':".format(TOP_K), most_similar(cbow_emb, 'queen', word2idx, idx2word, TOP_K))
+    # Only call most_similar, don't print its return value
+    most_similar(sgns_emb, 'king', word2idx, idx2word, TOP_K)
+    most_similar(sgns_emb, 'queen', word2idx, idx2word, TOP_K)
+    most_similar(cbow_emb, 'king', word2idx, idx2word, TOP_K)
+    most_similar(cbow_emb, 'queen', word2idx, idx2word, TOP_K)
 
     # Analogy: king - man + woman ~= queen
     def analogy(emb_matrix, word_a, word_b, word_c, word2idx, idx2word, k=TOP_K):
