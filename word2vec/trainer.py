@@ -28,6 +28,7 @@ CHOICE_WORDS_TO_EVALUATE = [
     "computer",
     "python",
 ]
+K_NEIGHBOURS = 5  # number of nearest neighbours to log for each probe word
 
 
 class Word2VecTrainer:
@@ -169,7 +170,7 @@ class Word2VecTrainer:
         probe_words = list(set(random_words) | set(CHOICE_WORDS_TO_EVALUATE))
 
         # keep only words that survived any pruning in build_vocab
-        valid_words = [w for w in probe_words if w in self.vocab]
+        valid_words: list[str] = [w for w in probe_words if w in self.vocab]
         if not valid_words:
             logger.warning("No valid probe words found in vocab; skipping evaluation.")
             return
@@ -180,21 +181,21 @@ class Word2VecTrainer:
 
         # compute pairwise cosine similarities
         with torch.no_grad():
-            all_embeds = torch.nn.functional.normalize(
-                self.model.embeddings.weight, p=2, dim=1
-            )  # (V, D)
-            probe_embs = all_embeds[word_indices]  # (N, D)
-            sim = probe_embs @ all_embeds.T  # (N, V)
+            embeds = torch.nn.functional.normalize(
+                self.model.embeddings(word_indices), p=2, dim=1
+            )
+            sim = embeds @ embeds.T
 
         # extract neighbours
-        k = min(5, len(valid_words) - 1)  # up to 5 neighbours (excludes self)
+        max_k = min(K_NEIGHBOURS, len(valid_words) - 1)  # exclude self from neighbours
         for i, word in enumerate(valid_words):
-            if k == 0:
+            if max_k == 0:
                 neighbours = []
             else:
-                # argsort descending, skip self
-                topk_idx = sim[i].topk(k + 1).indices.tolist()
-                neighbours = [valid_words[j] for j in topk_idx if j != i][:k]
+                # argsort is easier to reason about than topk here
+                idx_sorted = sim[i].argsort(descending=True)
+                idx_sorted = [int(j) for j in idx_sorted if j != i][:max_k]
+                neighbours = [valid_words[j] for j in idx_sorted]
             logger.info(f"Nearest neighbours for '{word}': {neighbours}")
 
     def _save_checkpoint(self, epoch):
