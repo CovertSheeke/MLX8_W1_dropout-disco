@@ -108,3 +108,9 @@ def get_tokens_as_indices(tokens: list[str], vocab: dict) -> list[int]:
     """
     unk = vocab[UNK_TOKEN]
     return [vocab.get(t, unk) for t in tokens]
+
+def get_words_from_indeces(indeces: list[int], vocab: dict) -> list[str]:
+    """
+    Converts a list of token indeces to a list of token values
+    """
+    return [list(vocab.keys())[list(vocab.values()).index(idx)] for idx in indeces if idx in vocab.values()]

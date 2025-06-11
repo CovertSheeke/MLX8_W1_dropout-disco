@@ -32,6 +32,7 @@ class Word2VecTrainer:
         model_dir,
         model_name: str,
         wandb_runner: Run,
+        vocab: dict = None,
     ) -> None:
         self.model = model
         self.epochs = epochs
@@ -47,6 +48,7 @@ class Word2VecTrainer:
         self.model_dir = model_dir
         self.model_name = model_name
         self.wandb_runner = wandb_runner
+        self.vocab = vocab
 
         # ensure model directory exists
         os.makedirs(self.model_dir, exist_ok=True)
@@ -63,11 +65,61 @@ class Word2VecTrainer:
         self.loss = {"train": [], "val": []}
         self.model.to(self.device)
 
+    def eval_model(self):
+        """
+        print model evaluation metrics, these are human readable, produced by comparing a few random words and a list of prechosen words which are each dot producted with the entire dataset to find their nearest neighbours
+        """
+        self.model.eval()
+        if self.vocab is None:
+            logger.warning(
+                "No vocab provided, cannot evaluate model. Please provide a vocab."
+            )
+            return
+        # get a few random words from the vocab
+        random_words = np.random.choice(
+            list(self.vocab.keys()), size=5, replace=False
+        )
+        # add a few prechosen words to evaluate
+        prechosen_words = [
+            "bottle",
+            "hot",
+            "ferocious",
+            "king",
+            "jump",
+            "debate"
+        ]
+        words_to_evaluate = list(set(random_words) | set(prechosen_words))
+        logger.info("Evaluating model on words: {}".format(words_to_evaluate))
+        # get the indices of these words in the vocab
+        indices = [self.vocab[word] for word in words_to_evaluate if word in self.vocab]
+        if not indices:
+            logger.warning(
+                "No valid words found in vocab for evaluation. Please check the vocab."
+            )
+            return
+        # dot product these indices with the model's embedding weights
+        with torch.no_grad():
+            embeddings = self.model.embedding(torch.tensor(indices).to(self.device))
+            # calculate cosine similarity between the embeddings
+            cosine_similarities = torch.nn.functional.cosine_similarity(
+                embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2
+            )
+            # get the top 5 nearest neighbours for each word
+            for i, word in enumerate(words_to_evaluate):
+                if word in self.vocab:
+                    top_indices = torch.topk(cosine_similarities[i], k=6).indices[1:]
+                    nearest_words = [words_to_evaluate[idx] for idx in top_indices]
+                    logger.info(
+                        "Nearest neighbours for '{}': {}".format(word, nearest_words)
+                    )
+
     def train(self):
         for epoch in range(1, self.epochs + 1):
             self._train_epoch()
+            
             if self.val_dl is not None:
                 self._validate_epoch()
+                self.eval_model()  # evaluate model after validation
                 logger.debug(
                     "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
                         epoch,

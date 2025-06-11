@@ -100,6 +100,7 @@ def train() -> None:
             run.config["dataset"],
         ),
         wandb_runner=run,
+        vocab=vocab,
     )
 
     logger.info("Starting training...")
