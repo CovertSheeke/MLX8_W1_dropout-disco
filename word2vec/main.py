@@ -26,12 +26,13 @@ WANDB_PROJECT = "word2vec"
 # hyperparameters should be encoded and varied from this config constant
 CONFIG = {
     "architecture": "cbow",
-    "dataset": "text8-titles",
-    "context_size": 4,
+    "dataset": "text8",
+    "context_size": 3,
     "freq_threshold": 5,
     "epochs": 100,
     "batch_size": 1024,
-    "learning_rate": 1e-2,
+    "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
+    "use_scheduler": True,  # whether to step lr down linearly over epochs
     "embedding_dimensions": 100,
     "embedding_max_norm": 1.0,
 }
@@ -91,6 +92,7 @@ def train() -> None:
         val_steps=100,  # to be defined
         checkpoint_frequency=CHECKPOINT_FREQUENCY,
         learning_rate=run.config["learning_rate"],
+        use_scheduler=run.config["use_scheduler"],
         device=get_device(),
         model_dir="weights",
         model_name=MODEL_NAME.format(

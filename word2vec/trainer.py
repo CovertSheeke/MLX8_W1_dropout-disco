@@ -27,6 +27,7 @@ class Word2VecTrainer:
         val_steps,
         checkpoint_frequency,
         learning_rate,
+        use_scheduler: bool,
         device,
         model_dir,
         model_name: str,
@@ -41,6 +42,7 @@ class Word2VecTrainer:
         self.val_steps = val_steps
         self.checkpoint_frequency = checkpoint_frequency
         self.learning_rate = learning_rate
+        self.use_scheduler = (use_scheduler,)
         self.device = device
         self.model_dir = model_dir
         self.model_name = model_name
@@ -53,10 +55,11 @@ class Word2VecTrainer:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         # decay learning rate linearly per epoch (i.e. chase gradient fast early on, and slow down over time)
-        self.lr_scheduler = LambdaLR(
-            optimizer=self.optimizer,
-            lr_lambda=lambda current_epoch: (epochs - current_epoch) / epochs,
-        )
+        if self.use_scheduler:
+            self.lr_scheduler = LambdaLR(
+                optimizer=self.optimizer,
+                lr_lambda=lambda current_epoch: (epochs - current_epoch) / epochs,
+            )
         self.loss = {"train": [], "val": []}
         self.model.to(self.device)
 
@@ -94,11 +97,16 @@ class Word2VecTrainer:
                 }
             )
 
-            # step the learning rate down after each epoch
-            self.lr_scheduler.step()
+            # step the learning rate down after each epoch (if using scheduler)
+            if self.use_scheduler:
+                self.lr_scheduler.step()
 
             if self.checkpoint_frequency:
                 self._save_checkpoint(epoch)
+
+        # save final model and loss history
+        self.save_model()
+        self.save_loss()
 
     # TODO: could implement negative sampling to speed up training runs?
     def _train_epoch(self):
@@ -161,6 +169,6 @@ class Word2VecTrainer:
 
     def save_loss(self):
         """Save train/val loss as json file to `self.model_dir` directory"""
-        loss_path = os.path.join(self.model_dir, "loss.json")
+        loss_path = os.path.join(self.model_dir, self.model_name + "_loss.json")
         with open(loss_path, "w") as fp:
             json.dump(self.loss, fp)
