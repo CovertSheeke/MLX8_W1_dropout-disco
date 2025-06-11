@@ -247,7 +247,9 @@ def most_similar(emb_matrix, word, word2idx, idx2word, k=10):
     sims = F.cosine_similarity(
         emb_matrix[word2idx[word]].unsqueeze(0), emb_matrix)
     vals, idxs = sims.topk(k+1)
-    return [(idx2word[i], v.item()) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != word][:k]
+    def get_val(v):
+        return v.item() if hasattr(v, "item") else v
+    return [(idx2word[i], get_val(v)) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != word][:k]
 
 def word2vec_tests(model_path):
     print("Loading model checkpoint...")
@@ -268,9 +270,11 @@ def word2vec_tests(model_path):
         # Exclude input words from results
         exclude = {word_a, word_b, word_c}
         result = []
+        def get_val(v):
+            return v.item() if hasattr(v, "item") else v
         for i, v in zip(idxs.tolist(), vals.tolist()):
             if idx2word[i] not in exclude:
-                result.append((idx2word[i], v.item()))
+                result.append((idx2word[i], get_val(v)))
             if len(result) == k:
                 break
         return result
@@ -284,6 +288,7 @@ def main():
     )
     parser.add_argument("--download", action="store_true", help="Download and extract text8 dataset")
     parser.add_argument("--train", action="store_true", help="Train SGNS and CBOW models")
+    parser.add_argument("--test", action="store_true", help="Run word2vec_tests on saved model")
     args = parser.parse_args()
 
     # Warn if .env does not exist
@@ -294,7 +299,7 @@ def main():
     # Check if text8 exists
     text8_exists = os.path.isfile(TEXT8_RAW_PATH)
 
-    if not (args.download or args.train):
+    if not (args.download or args.train or args.test):
         parser.print_help()
         sys.exit(0)
 
@@ -380,8 +385,16 @@ def main():
             "idx2word": idx2word
         }, OUTPUT_PATH)
 
-        word2vec_tests(OUTPUT_PATH)
+        if args.test:
+            word2vec_tests(OUTPUT_PATH)
         wandb.finish()
+        sys.exit(0)
+
+    if args.test and not args.train:
+        if not os.path.isfile(OUTPUT_PATH):
+            print(f"Model checkpoint not found at {OUTPUT_PATH}. Please train the model first.")
+            sys.exit(1)
+        word2vec_tests(OUTPUT_PATH)
         sys.exit(0)
 
     # If we get here, something went wrong
