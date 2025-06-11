@@ -35,6 +35,7 @@ LEARNING_RATE = float(os.getenv("LEARNING_RATE", "0.001"))
 NUMBER_WORKERS = int(os.getenv("NUMBER_WORKERS", "8"))
 SHUFFLE = os.getenv("SHUFFLE", "True").lower() in ("1", "true", "yes")
 PIN_MEMORY = os.getenv("PIN_MEMORY", "True").lower() in ("1", "true", "yes")
+TOP_K = int(os.getenv("TOP_K", "10"))
 
 # Ensure .data directory exists
 data_dir = os.path.dirname(TEXT8_ZIP_PATH) or "."
@@ -243,7 +244,7 @@ def train(model, dataloader, epochs, device, wandb_run=None, model_name=""):
                 "epoch": epoch
             })
 
-def most_similar(emb_matrix, word, word2idx, idx2word, k=10):
+def most_similar(emb_matrix, word, word2idx, idx2word, k=TOP_K):
     sims = F.cosine_similarity(
         emb_matrix[word2idx[word]].unsqueeze(0), emb_matrix)
     vals, idxs = sims.topk(k+1)
@@ -270,13 +271,13 @@ def word2vec_tests(model_path):
     word2idx = checkpoint['word2idx']
     idx2word = checkpoint['idx2word']
 
-    print("SGNS top 5 similar to 'king':", most_similar(sgns_emb, 'king', word2idx, idx2word, 5))
-    print("SGNS top 5 similar to 'queen':", most_similar(sgns_emb, 'queen', word2idx, idx2word, 5))
-    print("CBOW top 5 similar to 'king':", most_similar(cbow_emb, 'king', word2idx, idx2word, 5))
-    print("CBOW top 5 similar to 'queen':", most_similar(cbow_emb, 'queen', word2idx, idx2word, 5))
+    print("SGNS top {0} similar to 'king':".format(TOP_K), most_similar(sgns_emb, 'king', word2idx, idx2word, TOP_K))
+    print("SGNS top {0} similar to 'queen':".format(TOP_K), most_similar(sgns_emb, 'queen', word2idx, idx2word, TOP_K))
+    print("CBOW top {0} similar to 'king':".format(TOP_K), most_similar(cbow_emb, 'king', word2idx, idx2word, TOP_K))
+    print("CBOW top {0} similar to 'queen':".format(TOP_K), most_similar(cbow_emb, 'queen', word2idx, idx2word, TOP_K))
 
     # Analogy: king - man + woman ~= queen
-    def analogy(emb_matrix, word_a, word_b, word_c, word2idx, idx2word, k=5):
+    def analogy(emb_matrix, word_a, word_b, word_c, word2idx, idx2word, k=TOP_K):
         # 1. The formula is correct: emb(word_a) - emb(word_b) + emb(word_c)
         vec = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]] + emb_matrix[word2idx[word_c]]
         sims = F.cosine_similarity(vec.unsqueeze(0), emb_matrix)
@@ -295,8 +296,8 @@ def word2vec_tests(model_path):
             print(f"  {w:15s} {score:.4f}")
         return result
 
-    analogy(sgns_emb, 'king', 'man', 'woman', word2idx, idx2word, 5)
-    analogy(cbow_emb, 'king', 'man', 'woman', word2idx, idx2word, 5)
+    analogy(sgns_emb, 'king', 'man', 'woman', word2idx, idx2word, TOP_K)
+    analogy(cbow_emb, 'king', 'man', 'woman', word2idx, idx2word, TOP_K)
 
     # Calculate vector length for king - man + woman - queen
     analogy_vector_length(sgns_emb, 'king', 'man', 'woman', 'queen', word2idx)
