@@ -29,12 +29,14 @@ CONFIG = {
     "dataset": "text8",
     "context_size": 3,
     "freq_threshold": 5,
-    "epochs": 100,
-    "batch_size": 1024,
+    "epochs": 1,
+    "batch_size": 10,
     "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
     "embedding_dimensions": 100,
     "embedding_max_norm": 1.0,
+    "train_steps": 1000,
+    "val_steps": 100  # number of training steps per epoch
 }
 
 
@@ -58,7 +60,7 @@ def train() -> None:
 
     train_dl = DataLoader(
         train_ds,
-        batch_size=1024,
+        batch_size=CONFIG["batch_size"],
         shuffle=True,
         num_workers=4,
         pin_memory=True,  # good for GPU use
@@ -86,10 +88,10 @@ def train() -> None:
         epochs=run.config["epochs"],
         batch_size=run.config["batch_size"],
         train_dl=train_dl,
-        train_steps=1000,  # what is this ??
+        train_steps=CONFIG["train_steps"],  # what is this ??
         # TODO: split validation out from training dataset and pass through here
         val_dl=None,  # to be defined
-        val_steps=100,  # to be defined
+        val_steps=CONFIG["val_steps"],  # to be defined
         checkpoint_frequency=CHECKPOINT_FREQUENCY,
         learning_rate=run.config["learning_rate"],
         use_scheduler=run.config["use_scheduler"],

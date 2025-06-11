@@ -99,7 +99,7 @@ class Word2VecTrainer:
             return
         # dot product these indices with the model's embedding weights
         with torch.no_grad():
-            embeddings = self.model.embedding(torch.tensor(indices).to(self.device))
+            embeddings = self.model.embeddings(torch.tensor(indices).to(self.device))
             # calculate cosine similarity between the embeddings
             cosine_similarities = torch.nn.functional.cosine_similarity(
                 embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2
@@ -119,7 +119,6 @@ class Word2VecTrainer:
             
             if self.val_dl is not None:
                 self._validate_epoch()
-                self.eval_model()  # evaluate model after validation
                 logger.debug(
                     "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
                         epoch,
@@ -149,6 +148,7 @@ class Word2VecTrainer:
                 }
             )
 
+            self.eval_model()  # evaluate model after validation
             # step the learning rate down after each epoch (if using scheduler)
             if self.use_scheduler:
                 self.lr_scheduler.step()
