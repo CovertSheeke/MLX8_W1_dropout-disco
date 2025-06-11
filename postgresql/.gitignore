@@ -1,3 +1,8 @@
+<<<<<<< Updated upstream
 # Ignore all files in .data except .gitkeep
 .data/*
 !.data/.gitkeep
+=======
+# Ignore local PostgreSQL data directory
+.data/
+>>>>>>> Stashed changes
