@@ -29,7 +29,7 @@ CONFIG = {
     "dataset": "text8-titles",
     "context_size": 3,
     "freq_threshold": 5,
-    "epochs": 10,
+    "epochs": 3,
     "batch_size": 1024,
     "learning_rate": 1e-2,
     "embedding_dimensions": 100,
@@ -52,6 +52,7 @@ def train() -> None:
     train_ds, vocab = build_cbow_dataset(
         context_size=CONFIG["context_size"],
         min_freq=CONFIG["freq_threshold"],
+        include_hn_titles=False,
     )
 
     train_dl = DataLoader(

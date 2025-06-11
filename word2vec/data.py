@@ -56,15 +56,22 @@ class CBOWDataset(Dataset):
 def build_cbow_dataset(
     context_size: int = 3,
     min_freq: int = 5,
+    include_hn_titles: bool = True,
 ) -> tuple[CBOWDataset, dict]:
-    parquet_path = os.path.join(DATA_DIR, TRAIN_PROCESSED_FILENAME)
-    logger.debug(f"Loading data from {parquet_path}...")
-    # TODO: also get comments from HN, to be appended to the corpus
-    hn_posts = pd.read_parquet(parquet_path)
-    # show some basic info about the data we pulled from parquet
-    logger.info(f"Found {len(hn_posts)} records at {parquet_path}: {hn_posts.info()}")
-    # pull out all titles and concatenate into single string, separated by whitespace
-    hn_titles = " ".join(hn_posts["title"].tolist())
+    hn_titles = ""
+    if include_hn_titles:
+        parquet_path = os.path.join(DATA_DIR, TRAIN_PROCESSED_FILENAME)
+        logger.debug(f"Loading data from {parquet_path}...")
+        # TODO: also get comments from HN, to be appended to the corpus
+        hn_posts = pd.read_parquet(parquet_path)
+        # show some basic info about the data we pulled from parquet
+        logger.info(
+            f"Found {len(hn_posts)} records at {parquet_path}: {hn_posts.info()}"
+        )
+        # pull out all titles and concatenate into single string, separated by whitespace
+        hn_titles = " ".join(hn_posts["title"].tolist())
+    else:
+        logger.info("Skipping HN titles, using only text8 corpus.")
 
     # ensure text8 corpus is downloaded to data dir
     text8_filepath = get_text8(cache_dir=DATA_DIR)
