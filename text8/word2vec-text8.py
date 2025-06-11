@@ -249,7 +249,11 @@ def most_similar(emb_matrix, word, word2idx, idx2word, k=10):
     vals, idxs = sims.topk(k+1)
     def get_val(v):
         return v.item() if hasattr(v, "item") else v
-    return [(idx2word[i], get_val(v)) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != word][:k]
+    results = [(idx2word[i], get_val(v)) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != word][:k]
+    print(f"Most similar to '{word}':")
+    for w, score in results:
+        print(f"  {w:15s} {score:.4f}")
+    return results
 
 def word2vec_tests(model_path):
     print("Loading model checkpoint...")
@@ -260,14 +264,16 @@ def word2vec_tests(model_path):
     idx2word = checkpoint['idx2word']
 
     print("SGNS top 5 similar to 'king':", most_similar(sgns_emb, 'king', word2idx, idx2word, 5))
+    print("SGNS top 5 similar to 'queen':", most_similar(sgns_emb, 'queen', word2idx, idx2word, 5))
     print("CBOW top 5 similar to 'king':", most_similar(cbow_emb, 'king', word2idx, idx2word, 5))
+    print("CBOW top 5 similar to 'queen':", most_similar(cbow_emb, 'queen', word2idx, idx2word, 5))
 
-    # king - man + woman = ?
+    # Analogy: king - man + woman ~= queen
     def analogy(emb_matrix, word_a, word_b, word_c, word2idx, idx2word, k=5):
+        # 1. The formula is correct: emb(word_a) - emb(word_b) + emb(word_c)
         vec = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]] + emb_matrix[word2idx[word_c]]
         sims = F.cosine_similarity(vec.unsqueeze(0), emb_matrix)
         vals, idxs = sims.topk(k+3)
-        # Exclude input words from results
         exclude = {word_a, word_b, word_c}
         result = []
         def get_val(v):
@@ -277,10 +283,13 @@ def word2vec_tests(model_path):
                 result.append((idx2word[i], get_val(v)))
             if len(result) == k:
                 break
+        print(f"Analogy '{word_a} - {word_b} + {word_c}':")
+        for w, score in result:
+            print(f"  {w:15s} {score:.4f}")
         return result
 
-    print("SGNS analogy 'king - man + woman':", analogy(sgns_emb, 'king', 'man', 'woman', word2idx, idx2word, 5))
-    print("CBOW analogy 'king - man + woman':", analogy(cbow_emb, 'king', 'man', 'woman', word2idx, idx2word, 5))
+    analogy(sgns_emb, 'king', 'man', 'woman', word2idx, idx2word, 5)
+    analogy(cbow_emb, 'king', 'man', 'woman', word2idx, idx2word, 5)
 
 def main():
     parser = argparse.ArgumentParser(
