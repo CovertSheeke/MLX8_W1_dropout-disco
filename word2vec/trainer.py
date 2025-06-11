@@ -46,6 +46,9 @@ class Word2VecTrainer:
         self.model_name = model_name
         self.wandb_runner = wandb_runner
 
+        # ensure model directory exists
+        os.makedirs(self.model_dir, exist_ok=True)
+
         # some of the below could be exposed as args in order to generalise the class further
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
