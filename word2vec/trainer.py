@@ -178,7 +178,7 @@ class Word2VecTrainer:
             return
         # dot product these indices with the model's embedding weights
         with torch.no_grad():
-            embeddings = self.model.embedding(torch.tensor(indices).to(self.device))
+            embeddings = self.model.embeddings(torch.tensor(indices).to(self.device))
             # calculate cosine similarity between the embeddings
             cosine_similarities = torch.nn.functional.cosine_similarity(
                 embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2

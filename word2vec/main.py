@@ -25,6 +25,10 @@ DEBUG_MODE = os.environ.get("DEBUG_MODE", "0") == "1"
 WANDB_TEAM = "freemvmt-london"
 WANDB_PROJECT = "word2vec"
 
+# hot swap essential config on command line
+EPOCHS = int(os.environ.get("EPOCHS", 20))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4096))
+
 
 # hyperparameters should be encoded and varied from this config constant
 CONFIG = {
