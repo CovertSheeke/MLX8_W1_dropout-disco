@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+from typing import Optional
 
 import numpy as np
 import torch
@@ -13,6 +14,20 @@ from wandb.sdk.wandb_run import Run
 
 logger = logging.getLogger(__name__)
 
+# list off a few chosen words for eval
+CHOICE_WORDS_TO_EVALUATE = [
+    "bottle",
+    "hot",
+    "ferocious",
+    "king",
+    "jump",
+    "debate",
+    "politics",
+    "science",
+    "computer",
+    "python",
+]
+
 
 class Word2VecTrainer:
     # TODO: flesh out types
@@ -22,9 +37,8 @@ class Word2VecTrainer:
         epochs: int,
         batch_size: int,
         train_dl,
-        train_steps,
         val_dl,
-        val_steps,
+        test_dl,
         checkpoint_frequency,
         learning_rate,
         use_scheduler: bool,
@@ -32,15 +46,14 @@ class Word2VecTrainer:
         model_dir,
         model_name: str,
         wandb_runner: Run,
-        vocab: dict = None,
+        vocab: Optional[dict] = None,
     ) -> None:
         self.model = model
         self.epochs = epochs
         self.batch_size = batch_size
         self.train_dl = train_dl
-        self.train_steps = train_steps
         self.val_dl = val_dl
-        self.val_steps = val_steps
+        self.test_dl = test_dl
         self.checkpoint_frequency = checkpoint_frequency
         self.learning_rate = learning_rate
         self.use_scheduler = (use_scheduler,)
@@ -65,96 +78,37 @@ class Word2VecTrainer:
         self.loss = {"train": [], "val": []}
         self.model.to(self.device)
 
-    def eval_model(self):
-        """
-        print model evaluation metrics, these are human readable, produced by comparing a few random words and a list of prechosen words which are each dot producted with the entire dataset to find their nearest neighbours
-        """
-        self.model.eval()
-        if self.vocab is None:
-            logger.warning(
-                "No vocab provided, cannot evaluate model. Please provide a vocab."
-            )
-            return
-        # get a few random words from the vocab
-        random_words = np.random.choice(
-            list(self.vocab.keys()), size=5, replace=False
-        )
-        # add a few prechosen words to evaluate
-        prechosen_words = [
-            "bottle",
-            "hot",
-            "ferocious",
-            "king",
-            "jump",
-            "debate"
-        ]
-        words_to_evaluate = list(set(random_words) | set(prechosen_words))
-        logger.info("Evaluating model on words: {}".format(words_to_evaluate))
-        # get the indices of these words in the vocab
-        indices = [self.vocab[word] for word in words_to_evaluate if word in self.vocab]
-        if not indices:
-            logger.warning(
-                "No valid words found in vocab for evaluation. Please check the vocab."
-            )
-            return
-        # dot product these indices with the model's embedding weights
-        with torch.no_grad():
-            embeddings = self.model.embeddings(torch.tensor(indices).to(self.device))
-            # calculate cosine similarity between the embeddings
-            cosine_similarities = torch.nn.functional.cosine_similarity(
-                embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2
-            )
-            # get the top 5 nearest neighbours for each word
-            for i, word in enumerate(words_to_evaluate):
-                if word in self.vocab:
-                    top_indices = torch.topk(cosine_similarities[i], k=6).indices[1:]
-                    nearest_words = [words_to_evaluate[idx] for idx in top_indices]
-                    logger.info(
-                        "Nearest neighbours for '{}': {}".format(word, nearest_words)
-                    )
-
     def train(self):
         for epoch in range(1, self.epochs + 1):
             self._train_epoch()
-            
-            if self.val_dl is not None:
-                self._validate_epoch()
-                logger.debug(
-                    "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
-                        epoch,
-                        self.epochs,
-                        self.loss["train"][-1],
-                        self.loss["val"][-1],
-                    )
-                )
-                self.wandb_runner.log(
-                    {
-                        "epoch": epoch,
-                        "train_loss": self.loss["train"][-1],
-                        "val_loss": self.loss["val"][-1],
-                    }
-                )
+            self._validate_epoch()
+            self._eval_model()  # evaluate model after validation
+
+            # log to console and wandb
             logger.debug(
-                "Epoch: {}/{}, Train Loss={:.5f}".format(
+                "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
                     epoch,
                     self.epochs,
                     self.loss["train"][-1],
+                    self.loss["val"][-1],
                 )
             )
             self.wandb_runner.log(
                 {
                     "epoch": epoch,
                     "train_loss": self.loss["train"][-1],
+                    "val_loss": self.loss["val"][-1],
                 }
             )
 
-            self.eval_model()  # evaluate model after validation
             # step the learning rate down after each epoch (if using scheduler)
             if self.use_scheduler:
                 self.lr_scheduler.step()
 
             if self.checkpoint_frequency:
                 self._save_checkpoint(epoch)
+
+        # TODO: implement final test phase with test_dl
 
         # save final model and loss history
         self.save_model()
@@ -180,10 +134,6 @@ class Word2VecTrainer:
 
             running_loss.append(loss.item())
 
-            # TODO: check that breaking off at this point is sensible
-            if i == self.train_steps:
-                break
-
         epoch_loss = np.mean(running_loss)
         self.loss["train"].append(epoch_loss)
 
@@ -201,11 +151,46 @@ class Word2VecTrainer:
 
                 running_loss.append(loss.item())
 
-                if i == self.val_steps:
-                    break
-
         epoch_loss = np.mean(running_loss)
         self.loss["val"].append(epoch_loss)
+
+    def _eval_model(self):
+        """
+        print model evaluation metrics, these are human readable, produced by comparing a few random words and a list of prechosen words
+        which are each dot producted with the entire dataset to find their nearest neighbours
+        """
+        self.model.eval()
+        if self.vocab is None:
+            logger.warning(
+                "No vocab provided, cannot evaluate model. Please provide a vocab."
+            )
+            return
+        # get a few random words from the vocab
+        random_words = np.random.choice(list(self.vocab.keys()), size=5, replace=False)
+        words_to_evaluate = list(set(random_words) | set(CHOICE_WORDS_TO_EVALUATE))
+        logger.info("Evaluating model on words: {}".format(words_to_evaluate))
+        # get the indices of these words in the vocab
+        indices = [self.vocab[word] for word in words_to_evaluate if word in self.vocab]
+        if not indices:
+            logger.warning(
+                "No valid words found in vocab for evaluation. Please ensure the vocab is complete."
+            )
+            return
+        # dot product these indices with the model's embedding weights
+        with torch.no_grad():
+            embeddings = self.model.embedding(torch.tensor(indices).to(self.device))
+            # calculate cosine similarity between the embeddings
+            cosine_similarities = torch.nn.functional.cosine_similarity(
+                embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2
+            )
+            # get the top 5 nearest neighbours for each word
+            for i, word in enumerate(words_to_evaluate):
+                if word in self.vocab:
+                    top_indices = torch.topk(cosine_similarities[i], k=6).indices[1:]
+                    nearest_words = [words_to_evaluate[idx] for idx in top_indices]
+                    logger.info(
+                        "Nearest neighbours for '{}': {}".format(word, nearest_words)
+                    )
 
     def _save_checkpoint(self, epoch):
         """Save model checkpoint to `self.model_dir` directory"""

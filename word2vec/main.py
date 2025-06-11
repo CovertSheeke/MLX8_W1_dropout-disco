@@ -2,13 +2,16 @@ import logging
 import os
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import random_split
 import wandb
 
 from model import CBOWModel
 from trainer import Word2VecTrainer
 from utils import get_device
-from data import build_cbow_dataset, cbow_collate
+from data import (
+    build_cbow_dataset,
+    get_dl_from_ds,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -29,14 +32,15 @@ CONFIG = {
     "dataset": "text8",
     "context_size": 3,
     "freq_threshold": 5,
+    "subsampling_threshold": 1e-5,
     "epochs": 1,
     "batch_size": 10,
     "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
     "embedding_dimensions": 100,
     "embedding_max_norm": 1.0,
-    "train_steps": 1000,
-    "val_steps": 100  # number of training steps per epoch
+    "train_proportion": 0.9,  # proportion of dataset to use for training
+    "val_proportion": 0.05,  # proportion of dataset to use for validation
 }
 
 
@@ -52,21 +56,6 @@ def train() -> None:
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(RNG_SEED)
 
-    train_ds, vocab = build_cbow_dataset(
-        context_size=CONFIG["context_size"],
-        min_freq=CONFIG["freq_threshold"],
-        include_hn_titles=False,
-    )
-
-    train_dl = DataLoader(
-        train_ds,
-        batch_size=CONFIG["batch_size"],
-        shuffle=True,
-        num_workers=4,
-        pin_memory=True,  # good for GPU use
-        collate_fn=cbow_collate,
-    )
-
     # set up wandb to track our experiments (ie. parameter sweeping)
     run = wandb.init(
         entity=WANDB_TEAM,
@@ -74,6 +63,38 @@ def train() -> None:
         config=CONFIG,
     )
     logger.debug(f"WandB run {run.id} initialised with config: {run.config}")
+
+    if not (run.config.train_proportion + run.config.val_proportion) < 1.0:
+        raise ValueError(
+            "Training and validation proportions must sum to less than 1. "
+            f"Got: train={run.config.train_proportion}, val={run.config.val_proportion}"
+        )
+
+    logger.info("Building dataset...")
+    ds, vocab = build_cbow_dataset(
+        context_size=run.config["context_size"],
+        min_freq=run.config["freq_threshold"],
+        subsampling_threshold=run.config["subsampling_threshold"],
+        include_hn_titles=False,
+    )
+
+    # split dataset into train, validation, and test sets
+    ds_len = len(ds)
+    train_size = int(run.config.train_proportion * ds_len)
+    val_size = int(run.config.val_proportion * ds_len)
+    test_size = ds_len - train_size - val_size
+    train_ds, val_ds, test_ds = random_split(
+        ds,
+        [train_size, val_size, test_size],
+        generator=torch.Generator().manual_seed(RNG_SEED),
+    )
+    logger.info(
+        f"Dataset split into: train ({len(train_ds)}), validation ({len(val_ds)}), test ({len(test_ds)})"
+    )
+
+    train_dl = get_dl_from_ds(train_ds, batch_size=run.config["batch_size"])
+    val_dl = get_dl_from_ds(val_ds, batch_size=run.config["batch_size"])
+    test_dl = get_dl_from_ds(test_ds, batch_size=run.config["batch_size"])
 
     logger.info("Initialising model...")
     model = CBOWModel(
@@ -88,10 +109,8 @@ def train() -> None:
         epochs=run.config["epochs"],
         batch_size=run.config["batch_size"],
         train_dl=train_dl,
-        train_steps=CONFIG["train_steps"],  # what is this ??
-        # TODO: split validation out from training dataset and pass through here
-        val_dl=None,  # to be defined
-        val_steps=CONFIG["val_steps"],  # to be defined
+        val_dl=val_dl,
+        test_dl=test_dl,
         checkpoint_frequency=CHECKPOINT_FREQUENCY,
         learning_rate=run.config["learning_rate"],
         use_scheduler=run.config["use_scheduler"],

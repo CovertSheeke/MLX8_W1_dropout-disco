@@ -59,6 +59,7 @@ def tokenise(text: str) -> list[str]:
     words = text.split()
     return words
 
+
 def build_vocab(
     tokens: list[str],
     min_freq: int = 5,
@@ -72,7 +73,7 @@ def build_vocab(
     token_list = [UNK_TOKEN] + [
         word for word, count in word_counts.items() if count >= min_freq
     ]
-    num_discarded_freq =  (len(word_counts) - len(token_list))
+    num_discarded_freq = len(word_counts) - len(token_list)
 
     # Frequency subsampling (remove frequent words with probability proportional to their frequency)
     total_count = sum(Counter(tokens).values())
@@ -92,7 +93,7 @@ def build_vocab(
     token_list = subsampled
 
     vocab = {word: idx for idx, word in enumerate(token_list)}
-    
+
     # Report
     print(f"Total tokens in: {len(tokens)}")
     print(f"Number discarded from frequency threshold: {num_discarded_freq}")
@@ -100,6 +101,7 @@ def build_vocab(
     print(f"Vocab size: {len(vocab)}")
 
     return vocab
+
 
 def get_tokens_as_indices(tokens: list[str], vocab: dict) -> list[int]:
     """
@@ -109,8 +111,13 @@ def get_tokens_as_indices(tokens: list[str], vocab: dict) -> list[int]:
     unk = vocab[UNK_TOKEN]
     return [vocab.get(t, unk) for t in tokens]
 
-def get_words_from_indeces(indeces: list[int], vocab: dict) -> list[str]:
+
+def get_words_from_indices(indeces: list[int], vocab: dict) -> list[str]:
     """
     Converts a list of token indeces to a list of token values
     """
-    return [list(vocab.keys())[list(vocab.values()).index(idx)] for idx in indeces if idx in vocab.values()]
+    return [
+        list(vocab.keys())[list(vocab.values()).index(idx)]
+        for idx in indeces
+        if idx in vocab.values()
+    ]

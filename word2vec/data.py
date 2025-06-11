@@ -3,11 +3,11 @@ import os
 from pathlib import Path
 from typing import Union
 import urllib.request
-import zipfile
+from zipfile import ZipFile
 
 import torch
 import pandas as pd
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader, Subset
 
 from tokeniser import build_vocab, tokenise, get_tokens_as_indices
 
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 DATA_DIR = os.getenv("DATA_DIR", ".data")
 TRAIN_PROCESSED_FILENAME = "hn_posts_train_processed.parquet"
 TEXT8_ZIP_URL = "http://mattmahoney.net/dc/text8.zip"
-FILE_NAME = "text8"
-ZIP_NAME = FILE_NAME + ".zip"
+TEXT8_FILENAME = "text8"
+TEXT8_EXPECTED_LENGTH = 100_000_000  # text8 is expected to be 100 million chars
 
 
 # custom map-style dataset for CBOW
@@ -56,6 +56,7 @@ class CBOWDataset(Dataset):
 def build_cbow_dataset(
     context_size: int = 3,
     min_freq: int = 5,
+    subsampling_threshold: float = 1e-5,
     include_hn_titles: bool = True,
 ) -> tuple[CBOWDataset, dict]:
     # TODO: also get comments from HN, to be appended to the corpus
@@ -74,17 +75,17 @@ def build_cbow_dataset(
         logger.info("Skipping HN titles, using only text8 corpus.")
 
     # ensure text8 corpus is downloaded to data dir
-    text8_filepath = get_text8(cache_dir=DATA_DIR)
+    text8_path = get_text8(cache_dir=DATA_DIR)
 
     # build the big string
-    with open(text8_filepath, "r", encoding="utf-8") as f:
+    with open(text8_path, "r", encoding="utf-8") as f:
         corpus_txt = f.read() + " " + hn_titles
 
     tokens = tokenise(corpus_txt)
     logger.info(f"Produced tokenised corpus of {len(tokens)} tokens.")
 
     # build vocab and integer-encoded corpus reference list
-    vocab = build_vocab(tokens, min_freq=min_freq)
+    vocab = build_vocab(tokens, min_freq, subsampling_threshold)
     int_tokens = get_tokens_as_indices(tokens, vocab)
     logger.info(
         f"Built vocabulary of {len(vocab)} words with frequency threshold of {min_freq}."
@@ -93,6 +94,25 @@ def build_cbow_dataset(
     # finally, instantiate dataset
     dataset = CBOWDataset(int_tokens, context_size=context_size)
     return dataset, vocab
+
+
+def get_dl_from_ds(
+    dataset: Union[CBOWDataset, Subset[CBOWDataset]],
+    batch_size: int = 1024,
+    shuffle: bool = True,
+    num_workers: int = 4,
+) -> DataLoader:
+    """
+    Returns a DataLoader for the given dataset, with specified batch size and options.
+    """
+    return DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=True,  # good for GPU use
+        collate_fn=cbow_collate,  # use custom collate function
+    )
 
 
 # default collate_fn would work but we include this for clarity / documentation
@@ -107,29 +127,31 @@ def cbow_collate(
     return torch.stack(ctx), torch.stack(tgt)
 
 
-def get_text8(cache_dir: Union[str, Path] = DATA_DIR) -> Path:
+def get_text8(
+    cache_dir: Union[str, Path] = DATA_DIR,
+    text8_filename: str = TEXT8_FILENAME,
+) -> Path:
     """
     Ensure the Matt Mahoney 'text8' corpus is present locally, downloading it
     once and caching it for subsequent runs.
     """
     cache_dir = Path(cache_dir).expanduser().resolve()
     cache_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = cache_dir / ZIP_NAME
-    txt_path = cache_dir / FILE_NAME  # the file inside the zip
+    zip_path = cache_dir / f"{text8_filename}.zip"
+    txt_path = cache_dir / text8_filename
 
-    # already unzipped?
+    # txt already present? then we are done
     if txt_path.exists():
+        logger.info(f"text8 file found - using cached data at {txt_path}")
         return txt_path
 
-    # if we don't have the zip, need to download
+    # ensure full text8 file is present, and otherwise download and extract as necessary
     if not zip_path.exists():
         logger.info(f"Downloading text8 corpus to {zip_path}...")
         urllib.request.urlretrieve(TEXT8_ZIP_URL, zip_path)
-
-    # finally, unzip the file
-    logger.info(f"Extracting {zip_path} to {cache_dir}...")
-    with zipfile.ZipFile(zip_path) as zf:
-        zf.extract(FILE_NAME, cache_dir)
+    logger.info(f"Extracting {zip_path} to {txt_path}...")
+    with ZipFile(zip_path, "r") as zf:
+        zf.extract(text8_filename, cache_dir)
     return txt_path
 
 
