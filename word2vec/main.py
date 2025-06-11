@@ -30,11 +30,11 @@ WANDB_PROJECT = "word2vec"
 CONFIG = {
     "architecture": "cbow",
     "dataset": "text8",
-    "context_size": 3,
+    "context_size": 4,
     "freq_threshold": 5,
     "subsampling_threshold": 1e-5,
-    "epochs": 1,
-    "batch_size": 10,
+    "epochs": 20,
+    "batch_size": 4096,  # batch size for training, validation, and test
     "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
     "embedding_dimensions": 100,
