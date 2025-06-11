@@ -167,30 +167,64 @@ class Word2VecTrainer:
             return
         # get a few random words from the vocab
         random_words = np.random.choice(list(self.vocab.keys()), size=5, replace=False)
+        # words_to_evaluate contains all candidate words for evaluation
         words_to_evaluate = list(set(random_words) | set(CHOICE_WORDS_TO_EVALUATE))
         logger.info("Evaluating model on words: {}".format(words_to_evaluate))
-        # get the indices of these words in the vocab
-        indices = [self.vocab[word] for word in words_to_evaluate if word in self.vocab]
-        if not indices:
+
+        # filter for words actually in vocab (we bin some, see build_vocab) and create their indices
+        valid_words_for_similarity = []
+        indices_for_similarity = []
+        for word_candidate in words_to_evaluate:
+            if word_candidate in self.vocab:
+                valid_words_for_similarity.append(word_candidate)
+                indices_for_similarity.append(self.vocab[word_candidate])
+
+        if not indices_for_similarity:
             logger.warning(
-                "No valid words found in vocab for evaluation. Please ensure the vocab is complete."
+                "No valid words (from the candidates) found in vocab for similarity evaluation."
             )
             return
+
         # dot product these indices with the model's embedding weights
         with torch.no_grad():
-            embeddings = self.model.embeddings(torch.tensor(indices).to(self.device))
-            # calculate cosine similarity between the embeddings
+            # embeddings are for valid_words_for_similarity
+            embeddings = self.model.embeddings(
+                torch.tensor(indices_for_similarity).to(self.device)
+            )
+            # cosine_similarities dimensions will match len(valid_words_for_similarity)
             cosine_similarities = torch.nn.functional.cosine_similarity(
                 embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2
             )
-            # get the top 5 nearest neighbours for each word
-            for i, word in enumerate(words_to_evaluate):
-                if word in self.vocab:
-                    top_indices = torch.topk(cosine_similarities[i], k=6).indices[1:]
-                    nearest_words = [words_to_evaluate[idx] for idx in top_indices]
-                    logger.info(
-                        "Nearest neighbours for '{}': {}".format(word, nearest_words)
+
+            # iterate over the words for which we have embeddings and can compute similarities
+            for i, current_word in enumerate(valid_words_for_similarity):
+                # 'i' is the index for 'current_word' in 'valid_words_for_similarity'
+                # and correctly corresponds to the row/column in 'cosine_similarities'
+
+                num_words_in_similarity_set = len(valid_words_for_similarity)
+                # we want to find up to 5 neighbours, so we look at top 6 (self + 5 others)
+                # k_val cannot exceed the number of words we are comparing against
+                k_val = min(6, num_words_in_similarity_set)
+
+                if k_val < 2:
+                    nearest_words = []
+                else:
+                    # top_k_indices contains indices relative to valid_words_for_similarity
+                    top_k_indices = torch.topk(cosine_similarities[i], k=k_val).indices
+
+                    # The first element (top_k_indices[0]) is the word itself.
+                    # We want the subsequent elements as neighbours.
+                    neighbor_indices = top_k_indices[1:]
+                    nearest_words = [
+                        valid_words_for_similarity[int(idx.item())]
+                        for idx in neighbor_indices
+                    ]
+
+                logger.info(
+                    "Nearest neighbours for '{}': {}".format(
+                        current_word, nearest_words
                     )
+                )
 
     def _save_checkpoint(self, epoch):
         """Save model checkpoint to `self.model_dir` directory"""
