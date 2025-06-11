@@ -1,4 +1,5 @@
 from collections import Counter
+import random
 
 
 UNK_TOKEN = "<UNK>"
@@ -58,22 +59,47 @@ def tokenise(text: str) -> list[str]:
     words = text.split()
     return words
 
-
 def build_vocab(
     tokens: list[str],
     min_freq: int = 5,
+    subsampling_threshold: float = 1e-5,
 ) -> dict[str, int]:
     """
     Builds a vocabulary of words that appear more than the frequency threshold.
     """
     word_counts = Counter(tokens)
     # Remove words with frequency below threshold
-    word_counts = [UNK_TOKEN] + [
+    token_list = [UNK_TOKEN] + [
         word for word, count in word_counts.items() if count >= min_freq
     ]
-    vocab = {word: idx for idx, word in enumerate(word_counts)}
-    return vocab
+    num_discarded_freq =  (len(word_counts) - len(token_list))
 
+    # Frequency subsampling (remove frequent words with probability proportional to their frequency)
+    total_count = sum(Counter(tokens).values())
+    subsampled = []
+    freqs = Counter(tokens)
+    discarded_count_subsampling = 0  # Counter for discarded tokens
+    for word in token_list:
+        if word == UNK_TOKEN:
+            subsampled.append(word)
+            continue
+        freq = freqs[word] / total_count
+        prob_discard = 1 - (subsampling_threshold / freq) ** 0.5
+        if random.random() > prob_discard:
+            subsampled.append(word)
+        else:
+            discarded_count_subsampling += 1  # Increment counter if discarded
+    token_list = subsampled
+
+    vocab = {word: idx for idx, word in enumerate(token_list)}
+    
+    # Report
+    print(f"Total tokens in: {len(tokens)}")
+    print(f"Number discarded from frequency threshold: {num_discarded_freq}")
+    print(f"Number discarded from subsampling: {discarded_count_subsampling}")
+    print(f"Vocab size: {len(vocab)}")
+
+    return vocab
 
 def get_tokens_as_indices(tokens: list[str], vocab: dict) -> list[int]:
     """
