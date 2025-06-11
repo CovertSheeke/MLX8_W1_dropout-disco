@@ -23,8 +23,8 @@ TEXT8_URL = os.getenv("TEXT8_URL", "http://mattmahoney.net/dc/text8.zip")
 TEXT8_ZIP_PATH = os.getenv("TEXT8_ZIP_PATH", ".data/text8.zip")
 TEXT8_RAW_PATH = os.getenv("TEXT8_RAW_PATH", ".data/text8")
 MIN_COUNT = int(os.getenv("MIN_COUNT", "5"))
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "200"))
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "512"))
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "100"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "8192"))
 EPOCHS = int(os.getenv("EPOCHS", "3"))
 SGNS_MODEL_NAME = os.getenv("SGNS_MODEL_NAME", "sgns")
 CBOW_MODEL_NAME = os.getenv("CBOW_MODEL_NAME", "cbow")
@@ -32,6 +32,9 @@ WANDB_PROJECT = os.getenv("WANDB_PROJECT", "text8-word2vec")
 WANDB_RUN_NAME = os.getenv("WANDB_RUN_NAME", "text8-sgns-cbow")
 OUTPUT_PATH = os.getenv("OUTPUT_PATH", ".data/text8_compare.pt")
 LEARNING_RATE = float(os.getenv("LEARNING_RATE", "0.001"))
+NUMBER_WORKERS = int(os.getenv("NUMBER_WORKERS", "8"))
+SHUFFLE = os.getenv("SHUFFLE", "True").lower() in ("1", "true", "yes")
+PIN_MEMORY = os.getenv("PIN_MEMORY", "True").lower() in ("1", "true", "yes")
 
 # Ensure .data directory exists
 data_dir = os.path.dirname(TEXT8_ZIP_PATH) or "."
@@ -338,18 +341,33 @@ def main():
 
         # SGNS
         sgns_ds = SGNSDataset(tokens, word2idx, probs)
-        sgns_loader = DataLoader(sgns_ds, batch_size=BATCH_SIZE, shuffle=True)
+        print(f"SGNS DataLoader params: batch_size={BATCH_SIZE}, shuffle={SHUFFLE}, num_workers={NUMBER_WORKERS}, pin_memory={PIN_MEMORY}")
+        sgns_loader = DataLoader(
+            sgns_ds,
+            batch_size=BATCH_SIZE,
+            shuffle=SHUFFLE,
+            num_workers=NUMBER_WORKERS,
+            pin_memory=PIN_MEMORY
+        )
         sgns_model = SGNS(len(idx2word), emb_size=EMBEDDING_DIM)
         print("Training SGNS...")
         train(sgns_model, sgns_loader, epochs=EPOCHS, device=device, wandb_run=wandb, model_name=SGNS_MODEL_NAME)
 
         # CBOW
         cbow_ds = CBOWDataset(tokens, word2idx, probs)
-        cbow_loader = DataLoader(cbow_ds, batch_size=BATCH_SIZE, shuffle=True, collate_fn=lambda x: (
-            nn.utils.rnn.pad_sequence([c for c, *_ in x], batch_first=True, padding_value=0),
-            torch.tensor([t for _, t, _ in x]),
-            torch.stack([n for *_, n in x])
-        ))
+        print(f"CBOW DataLoader params: batch_size={BATCH_SIZE}, shuffle={SHUFFLE}, num_workers={NUMBER_WORKERS}, pin_memory={PIN_MEMORY}")
+        cbow_loader = DataLoader(
+            cbow_ds,
+            batch_size=BATCH_SIZE,
+            shuffle=SHUFFLE,
+            num_workers=NUMBER_WORKERS,
+            pin_memory=PIN_MEMORY,
+            collate_fn=lambda x: (
+                nn.utils.rnn.pad_sequence([c for c, *_ in x], batch_first=True, padding_value=0),
+                torch.tensor([t for _, t, _ in x]),
+                torch.stack([n for *_, n in x])
+            )
+        )
         cbow_model = CBOW(len(idx2word), emb_size=EMBEDDING_DIM)
         print("Training CBOW...")
         train(cbow_model, cbow_loader, epochs=EPOCHS, device=device, wandb_run=wandb, model_name=CBOW_MODEL_NAME)
