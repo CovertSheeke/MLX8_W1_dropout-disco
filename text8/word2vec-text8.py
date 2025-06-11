@@ -255,6 +255,13 @@ def most_similar(emb_matrix, word, word2idx, idx2word, k=10):
         print(f"  {w:15s} {score:.4f}")
     return results
 
+def analogy_vector_length(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
+    # Compute the vector: emb(word_a) - emb(word_b) + emb(word_c) - emb(word_d)
+    vec = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]] + emb_matrix[word2idx[word_c]] - emb_matrix[word2idx[word_d]]
+    length = torch.norm(vec).item()
+    print(f"Vector length for '{word_a} - {word_b} + {word_c} - {word_d}': {length:.6f}")
+    return length
+
 def word2vec_tests(model_path):
     print("Loading model checkpoint...")
     checkpoint = torch.load(model_path)
@@ -290,6 +297,10 @@ def word2vec_tests(model_path):
 
     analogy(sgns_emb, 'king', 'man', 'woman', word2idx, idx2word, 5)
     analogy(cbow_emb, 'king', 'man', 'woman', word2idx, idx2word, 5)
+
+    # Calculate vector length for king - man + woman - queen
+    analogy_vector_length(sgns_emb, 'king', 'man', 'woman', 'queen', word2idx)
+    analogy_vector_length(cbow_emb, 'king', 'man', 'woman', 'queen', word2idx)
 
 def main():
     parser = argparse.ArgumentParser(
