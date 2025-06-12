@@ -210,7 +210,6 @@ __pycache__/
 
 # Environment files
 .env
-.env.example
 
 # Data and model outputs
 .data/
