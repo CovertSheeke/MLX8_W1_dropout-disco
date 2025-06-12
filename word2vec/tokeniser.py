@@ -1,6 +1,8 @@
 from collections import Counter
 import random
+import logging
 
+logger = logging.getLogger(__name__)
 
 UNK_TOKEN = "<UNK>"
 PUNCTUATION_MAP = {
@@ -37,7 +39,7 @@ PUNCTUATION_MAP = {
 }
 
 
-# TODO: can we improve? e.g. remove stop words, stem/lemmatise, do frequency subsampling etc.
+# TODO: can we improve? e.g. remove stop words, stem/lemmatise
 def tokenise(text: str) -> list[str]:
     """
     Tokenises a long string of text by lowercasing, replacing punctuation with predefined angle bracket words.
@@ -95,10 +97,10 @@ def build_vocab(
     vocab = {word: idx for idx, word in enumerate(token_list)}
 
     # Report
-    print(f"Total tokens in: {len(tokens)}")
-    print(f"Number discarded from frequency threshold: {num_discarded_freq}")
-    print(f"Number discarded from subsampling: {discarded_count_subsampling}")
-    print(f"Vocab size: {len(vocab)}")
+    logger.info(f"Total tokens in: {len(tokens)}")
+    logger.info(f"Number discarded from frequency threshold: {num_discarded_freq} ({num_discarded_freq / len(word_counts) * 100:.2f}%)")
+    logger.info(f"Number discarded from subsampling: {discarded_count_subsampling} ({discarded_count_subsampling / len(token_list) * 100:.2f}%)")
+    logger.info(f"Vocab size: {len(vocab)}")
 
     return vocab
 

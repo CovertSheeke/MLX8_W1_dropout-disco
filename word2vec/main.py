@@ -36,7 +36,7 @@ CONFIG = {
     "dataset": "text8",
     "context_size": 4,
     "freq_threshold": 5,
-    "subsampling_threshold": 1e-5,
+    "subsampling_threshold": 1e-4,
     "epochs": 20,
     "batch_size": 4096,  # batch size for training, validation, and test
     "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
