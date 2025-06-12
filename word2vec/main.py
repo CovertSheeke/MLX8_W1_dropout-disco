@@ -33,15 +33,15 @@ BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4096))
 # hyperparameters should be encoded and varied from this config constant
 CONFIG = {
     "architecture": "cbow",
-    "dataset": "text8",
-    "context_size": 4,
+    "dataset": "text8-hn",
+    "context_size": 2,
     "freq_threshold": 5,
-    "subsampling_threshold": 1e-4,
-    "epochs": 20,
-    "batch_size": 4096,  # batch size for training, validation, and test
-    "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
+    "subsampling_threshold": 1e-3,
+    "epochs": 30,
+    "batch_size": 2048,  # batch size for training, validation, and test
+    "learning_rate": 1e-3,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
-    "embedding_dimensions": 100,
+    "embedding_dimensions": 300,
     "embedding_max_norm": 1.0,
     "train_proportion": 0.9,  # proportion of dataset to use for training
     "val_proportion": 0.05,  # proportion of dataset to use for validation

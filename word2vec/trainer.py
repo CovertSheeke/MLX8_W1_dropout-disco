@@ -110,13 +110,12 @@ class Word2VecTrainer:
             if self.checkpoint_frequency:
                 self._save_checkpoint(epoch)
 
-        # TODO: implement final test phase with test_dl
+        # TODO: implement final test phase after all epoch runs, with test_dl
 
         # save final model and loss history
         self.save_model()
         self.save_loss()
 
-    # TODO: could implement negative sampling to speed up training runs?
     def _train_epoch(self):
         self.model.train()
         running_loss = []
@@ -156,6 +155,7 @@ class Word2VecTrainer:
         epoch_loss = np.mean(running_loss)
         self.loss["val"].append(epoch_loss)
 
+    # FIXME: eval logic seems to only consider probe words when computing nearest neighbour, not entire vocab!
     def _eval_model(self):
         """
         Log nearest-neighbour words for a few random+preset probes.
