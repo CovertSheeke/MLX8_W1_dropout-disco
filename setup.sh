@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# run like `source setup.sh` to ensure active shell is set up
 apt update
 # ensure we have all the utils we need
 apt install -y vim rsync git
