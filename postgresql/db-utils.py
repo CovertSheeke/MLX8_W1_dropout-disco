@@ -74,6 +74,7 @@ def fetch_hn_items(engine, limit=None, fetch_only_titles=False, monitor_progress
             total_rows = pd.read_sql_query(text(count_query), connection).iloc[0][
                 "total"
             ]
+        print(f"Total rows to fetch (in chunks): {total_rows}")
 
     if fetch_only_titles:
         query = """
@@ -148,6 +149,7 @@ if __name__ == "__main__":
     print("Hacker News data ingest script started ...")
 
     if MINIMAL_FETCH_ONLY_TITLES:
+        # we assume we want to monitor progress when doing a minimal fetch
         print("Minimal fetch mode: fetching only titles for Word2Vec training")
         df_titles = fetch_hn_items(
             engine=engine,
@@ -159,6 +161,7 @@ if __name__ == "__main__":
             print("No titles found or 'title' column is missing. Exiting.")
             exit()
 
+        print("Fetched titles from db, saving to parquet...")
         os.makedirs(os.path.dirname(TITLES_FILE), exist_ok=True)
         df_titles.to_parquet(TITLES_FILE, index=False)
 
