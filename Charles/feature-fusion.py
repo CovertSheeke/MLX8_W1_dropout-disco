@@ -14,7 +14,7 @@ from datetime import datetime
 from sklearn.metrics import r2_score, mean_absolute_error
 
 # Load environment variables
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../postgresql/.data/.env"))
+load_dotenv()
 
 # Paths from environment variables
 TRAIN_FILE = os.getenv("PROCESSED_TRAIN_FILE", "../postgresql/.data/hn_posts_train_processed.parquet")
@@ -50,6 +50,13 @@ class FusionDataset(Dataset):
     def __init__(self, parquet_path, word2idx):
         self.df = pd.read_parquet(parquet_path)
         self.word2idx = word2idx
+        # Print max values for debugging
+        print("Max type_id:", self.df['type_id'].max())
+        print("Max day_of_week_id:", self.df['day_of_week_id'].max())
+        print("Max domain_id:", self.df['domain_id'].max())
+        print("Num unique type_id:", self.df['type_id'].nunique())
+        print("Num unique day_of_week_id:", self.df['day_of_week_id'].nunique())
+        print("Num unique domain_id:", self.df['domain_id'].nunique())
         
     def __len__(self):
         return len(self.df)
@@ -65,6 +72,10 @@ class FusionDataset(Dataset):
         type_id = int(row['type_id'])
         day_id = int(row['day_of_week_id'])
         domain_id = int(row['domain_id'])
+        # Add assertions to catch out-of-bounds indices
+        assert type_id >= 0, f"type_id {type_id} < 0"
+        assert day_id >= 0, f"day_id {day_id} < 0"
+        assert domain_id >= 0, f"domain_id {domain_id} < 0"
         hour = float(row['hour_of_day'])
         karma = float(row['karma'])
         descendants = float(row['descendants'])
@@ -190,6 +201,11 @@ def main():
     parser.add_argument("--train", action="store_true", help="Train the fusion model")
     parser.add_argument("--test", action="store_true", help="Evaluate the fusion model on the test set")
     args = parser.parse_args()
+
+    # Exit if no command args provided
+    if not args.train and not args.test:
+        print("No action specified. Use --train and/or --test.")
+        sys.exit(0)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
