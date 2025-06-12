@@ -2,7 +2,6 @@ import json
 import os
 import logging
 import random
-from typing import Optional
 
 import numpy as np
 import torch
@@ -48,7 +47,7 @@ class Word2VecTrainer:
         model_dir,
         model_name: str,
         wandb_runner: Run,
-        vocab: Optional[dict] = None,
+        vocab: dict[str, int],
     ) -> None:
         self.model = model
         self.epochs = epochs
@@ -115,6 +114,7 @@ class Word2VecTrainer:
         # save final model and loss history
         self.save_model()
         self.save_loss()
+        self.save_vocab()
 
     def _train_epoch(self):
         self.model.train()
@@ -161,9 +161,6 @@ class Word2VecTrainer:
         Log nearest-neighbour words for a few random+preset probes.
         """
         self.model.eval()
-        if self.vocab is None:
-            logger.warning("No vocab provided; skipping evaluation.")
-            return
 
         # assemble probe word list
         random_words = random.sample(list(self.vocab), k=min(5, len(self.vocab)))
@@ -213,5 +210,11 @@ class Word2VecTrainer:
     def save_loss(self):
         """Save train/val loss as json file to `self.model_dir` directory"""
         loss_path = os.path.join(self.model_dir, self.model_name + "_loss.json")
-        with open(loss_path, "w") as fp:
-            json.dump(self.loss, fp)
+        with open(loss_path, "w") as f:
+            json.dump(self.loss, f, indent=2)
+
+    def save_vocab(self) -> None:
+        """Save vocabulary dictionary to JSON file to `self.model_dir` directory"""
+        vocab_path = os.path.join(self.model_dir, self.model_name + "_vocab.json")
+        with open(vocab_path, "w") as f:
+            json.dump(self.vocab, f, indent=2)

@@ -78,30 +78,36 @@ def build_vocab(
     num_discarded_freq = len(word_counts) - len(token_list)
 
     # Frequency subsampling (remove frequent words with probability proportional to their frequency)
-    total_count = sum(Counter(tokens).values())
-    subsampled = []
-    freqs = Counter(tokens)
-    discarded_count_subsampling = 0  # Counter for discarded tokens
-    for word in token_list:
-        if word == UNK_TOKEN:
-            subsampled.append(word)
-            continue
-        freq = freqs[word] / total_count
-        prob_discard = 1 - (subsampling_threshold / freq) ** 0.5
-        if random.random() > prob_discard:
-            subsampled.append(word)
-        else:
-            discarded_count_subsampling += 1  # Increment counter if discarded
-    token_list = subsampled
+    if subsampling_threshold is not None:
+        logger.info(f"Subsampling tokens with threshold: {subsampling_threshold}")
+        total_count = sum(Counter(tokens).values())
+        subsampled = []
+        freqs = Counter(tokens)
+        discarded_count_subsampling = 0  # Counter for discarded tokens
+        for word in token_list:
+            if word == UNK_TOKEN:
+                subsampled.append(word)
+                continue
+            freq = freqs[word] / total_count
+            prob_discard = 1 - (subsampling_threshold / freq) ** 0.5
+            if random.random() > prob_discard:
+                subsampled.append(word)
+            else:
+                discarded_count_subsampling += 1  # Increment counter if discarded
+        token_list = subsampled
 
     vocab = {word: idx for idx, word in enumerate(token_list)}
 
     # Report
     logger.info(f"Total tokens in: {len(tokens)}")
-    logger.info(f"Number discarded from frequency threshold: {num_discarded_freq} ({num_discarded_freq / len(word_counts) * 100:.2f}%)")
-    logger.info(f"Number discarded from subsampling: {discarded_count_subsampling} ({discarded_count_subsampling / len(token_list) * 100:.2f}%)")
+    logger.info(
+        f"Number discarded from frequency threshold: {num_discarded_freq} ({num_discarded_freq / len(word_counts) * 100:.2f}%)"
+    )
+    if subsampling_threshold is not None:
+        logger.info(
+            f"Number discarded from subsampling: {discarded_count_subsampling} ({discarded_count_subsampling / len(token_list) * 100:.2f}%)"
+        )
     logger.info(f"Vocab size: {len(vocab)}")
-
     return vocab
 
 

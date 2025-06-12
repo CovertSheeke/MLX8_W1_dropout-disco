@@ -117,6 +117,7 @@ def fetch_hn_items(engine, limit=None, fetch_only_titles=False, monitor_progress
                 ):
                     chunks.append(chunk)
                     pbar.update(CHUNKSIZE)
+        print("Chunks fetched, loading into dataframe...")
         df_items = pd.concat(chunks, ignore_index=True)
 
     with engine.connect() as connection:

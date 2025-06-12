@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 # constants (excluding hyperparameters)
 RNG_SEED = 42
 CHECKPOINT_FREQUENCY = 5  # how often to save model weights during training
-MODEL_NAME = "word2vec_{}_{}_{}.pt"  # format: architecture, dataset, wandb run
+MODEL_NAME = "word2vec_{}_{}_{}"  # format: architecture, dataset, wandb run
 DEBUG_MODE = os.environ.get("DEBUG_MODE", "0") == "1"
 WANDB_TEAM = "freemvmt-london"
 WANDB_PROJECT = "word2vec"
 
-# hot swap essential config on command line
-EPOCHS = int(os.environ.get("EPOCHS", 20))
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4096))
+# hot swap essential config from command line
+EPOCHS = int(os.environ.get("EPOCHS", 30))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 2048))
 
 
 # hyperparameters should be encoded and varied from this config constant
@@ -36,9 +36,9 @@ CONFIG = {
     "dataset": "text8-hn",
     "context_size": 2,
     "freq_threshold": 5,
-    "subsampling_threshold": 1e-3,
-    "epochs": 30,
-    "batch_size": 2048,  # batch size for training, validation, and test
+    "subsampling_threshold": None,  # set to None to disable freq. subsampling
+    "epochs": EPOCHS,
+    "batch_size": BATCH_SIZE,  # batch size for training, validation, and test
     "learning_rate": 1e-3,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
     "embedding_dimensions": 300,
