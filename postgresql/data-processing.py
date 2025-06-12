@@ -301,11 +301,7 @@ def apply_feature_engineering(df, split):
 
 # --- Main execution example for data_processing.py ---
 if __name__ == "__main__":
-    if not os.path.exists(DOMAIN_PARQUET_PATH):
-        print(f"Domain parquet file not found at {DOMAIN_PARQUET_PATH}.")
-        print("Please run: python data-processing.py --domain")
-        sys.exit(1)
-
+    
     # Handle --domain with overwrite prompt
     if "--domain" in sys.argv:
         if os.path.exists(DOMAIN_PARQUET_PATH):
@@ -316,6 +312,11 @@ if __name__ == "__main__":
         process_domains(TRAIN_FILE, TEST_FILE, DOMAIN_PARQUET_PATH)
         sys.exit(0)
     
+    if not os.path.exists(DOMAIN_PARQUET_PATH):
+        print(f"Domain parquet file not found at {DOMAIN_PARQUET_PATH}.")
+        print("Please run: python data-processing.py --domain")
+        sys.exit(1)
+
     # Handle --domain-list [N]
     if "--domain-list" in sys.argv:
         idx = sys.argv.index("--domain-list")
