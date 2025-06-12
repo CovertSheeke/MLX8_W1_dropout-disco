@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,6 +21,7 @@ else:
 
 # include a switch for fetching minimal data (for training word2vec)
 MINIMAL_FETCH_ONLY_TITLES = os.getenv("MINIMAL_FETCH_ONLY_TITLES", "0") == "1"
+CHUNKSIZE = int(os.getenv("CHUNKSIZE", "10000"))  # chunk size for monitored read
 
 TEST_SIZE = float(os.getenv("TEST_SIZE", "0.2"))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", "42"))
@@ -37,7 +39,7 @@ def get_db_engine():
     return engine
 
 
-def fetch_hn_items(engine, limit=None, fetch_only_titles=False):
+def fetch_hn_items(engine, limit=None, fetch_only_titles=False, monitor_progress=False):
     """
     Fetches Hacker News items (specifically 'story', 'poll', 'pollopt' types),
     focusing on titles and scores, with an optional limit.
@@ -48,20 +50,40 @@ def fetch_hn_items(engine, limit=None, fetch_only_titles=False):
         pd.DataFrame: DataFrame of filtered Hacker News items.
     """
     print("Preparing to fetch items from hacker_news.items ...")
-    if fetch_only_titles:
-        print("Minimal fetch mode: fetching only post titles for Word2Vec training.")
-        query = """
-        SELECT
-            id,
-            title,
-            score
-        FROM
-            hacker_news.items
-        WHERE
-            score IS NOT NULL
+
+    # fetching # rows first will slow us down, but provides an essential sanity check for huge pulls
+    total_rows = None
+    if monitor_progress:
+        print("Monitoring progress: counting total rows to fetch...")
+        count_query = """
+        SELECT COUNT(*) as total
+        FROM hacker_news.items
+        WHERE score IS NOT NULL
             AND title IS NOT NULL
-            AND type IN ('story') -- Explicitly filter for desired types
+            AND type IN ('story')
         """
+        if limit:
+            count_query = f"""
+            SELECT LEAST({limit}, COUNT(*)) as total
+            FROM hacker_news.items
+            WHERE score IS NOT NULL
+                AND title IS NOT NULL
+                AND type IN ('story')
+            """
+        with engine.connect() as connection:
+            total_rows = pd.read_sql_query(text(count_query), connection).iloc[0][
+                "total"
+            ]
+
+    if fetch_only_titles:
+        query = """
+        SELECT id, title, score
+        FROM hacker_news.items
+        WHERE score IS NOT NULL
+            AND title IS NOT NULL
+            AND type IN ('story')
+        """
+
     query = """
     SELECT
         id,
@@ -81,7 +103,21 @@ def fetch_hn_items(engine, limit=None, fetch_only_titles=False):
     """
     if limit:
         query += f" LIMIT {limit}"  # Add limit clause
+
     print("Executing SQL query for items ...")
+    chunks = []
+    if monitor_progress and total_rows is not None:
+        with engine.connect() as connection:
+            with tqdm(total=total_rows, desc="Fetching data", unit="rows") as pbar:
+                for chunk in pd.read_sql_query(
+                    sql=text(query),
+                    con=connection,
+                    chunksize=CHUNKSIZE,
+                ):
+                    chunks.append(chunk)
+                    pbar.update(CHUNKSIZE)
+        df_items = pd.concat(chunks, ignore_index=True)
+
     with engine.connect() as connection:
         df_items = pd.read_sql_query(text(query), connection)
     print(f"Fetched {len(df_items)} items of desired types.")
@@ -112,11 +148,12 @@ if __name__ == "__main__":
     print("Hacker News data ingest script started ...")
 
     if MINIMAL_FETCH_ONLY_TITLES:
-        print("Minimal fetch mode: fetching only titles for Word2Vec training.")
+        print("Minimal fetch mode: fetching only titles for Word2Vec training")
         df_titles = fetch_hn_items(
             engine=engine,
             limit=TOTAL_RECORDS_TO_FETCH,
             fetch_only_titles=True,
+            monitor_progress=True,
         )
         if df_titles.empty or "title" not in df_titles.columns:
             print("No titles found or 'title' column is missing. Exiting.")
