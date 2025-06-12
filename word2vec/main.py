@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # constants (excluding hyperparameters)
 RNG_SEED = 42
 CHECKPOINT_FREQUENCY = 5  # how often to save model weights during training
-MODEL_NAME = "word2vec_{}_{}"
+MODEL_NAME = "word2vec_{}_{}_{}.pt"  # format: architecture, dataset, wandb run
 DEBUG_MODE = os.environ.get("DEBUG_MODE", "0") == "1"
 WANDB_TEAM = "freemvmt-london"
 WANDB_PROJECT = "word2vec"
@@ -124,6 +124,7 @@ def train() -> None:
         model_name=MODEL_NAME.format(
             run.config["architecture"],
             run.config["dataset"],
+            run.name,
         ),
         wandb_runner=run,
         vocab=vocab,
