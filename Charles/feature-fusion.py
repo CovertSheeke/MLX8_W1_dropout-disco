@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 import wandb
 from datetime import datetime
-from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, median_absolute_error, explained_variance_score, max_error
+from scipy.stats import pearsonr, spearmanr
 
 # Load environment variables
 load_dotenv()
@@ -180,6 +181,22 @@ def train_fusion(model, dataloader, device, optimizer, criterion, wandb_run=None
             })
     return running_loss / len(dataloader.dataset)
 
+def print_eda(parquet_path):
+    df = pd.read_parquet(parquet_path)
+    print("=== EDA for", parquet_path, "===")
+    print("Num rows:", len(df))
+    print("Columns:", df.columns.tolist())
+    print("Sample rows:\n", df.head())
+    print("Describe:\n", df.describe(include='all'))
+    print("Type value counts:\n", df['type_id'].value_counts())
+    print("Day of week value counts:\n", df['day_of_week_id'].value_counts())
+    print("Domain value counts:\n", df['domain_id'].value_counts())
+    print("Score stats:\n", df['score'].describe())
+    print("Karma stats:\n", df['karma'].describe())
+    print("Descendants stats:\n", df['descendants'].describe())
+    print("Hour of day stats:\n", df['hour_of_day'].describe())
+    print("Title length stats:\n", df['title'].apply(lambda x: len(simple_tokenize(x))).describe())
+
 def evaluate_fusion(model, dataloader, device, criterion):
     model.eval()
     running_loss = 0.0
@@ -197,13 +214,50 @@ def evaluate_fusion(model, dataloader, device, criterion):
     targets = torch.cat(all_targets).numpy()
     r2 = r2_score(targets, preds)
     mae = mean_absolute_error(targets, preds)
-    return running_loss / len(dataloader.dataset), r2, mae
+    rmse = mean_squared_error(targets, preds, squared=False)
+    mape = (np.abs((targets - preds) / np.clip(targets, 1e-8, None))).mean()
+    medae = median_absolute_error(targets, preds)
+    evs = explained_variance_score(targets, preds)
+    maxerr = max_error(targets, preds)
+    # Pearson and Spearman
+    try:
+        pearson = pearsonr(targets, preds)[0]
+    except Exception:
+        pearson = float('nan')
+    try:
+        spearman = spearmanr(targets, preds)[0]
+    except Exception:
+        spearman = float('nan')
+    metrics = {
+        "loss": running_loss / len(dataloader.dataset),
+        "r2": r2,
+        "mae": mae,
+        "rmse": rmse,
+        "mape": mape,
+        "medae": medae,
+        "explained_variance": evs,
+        "max_error": maxerr,
+        "pearson": pearson,
+        "spearman": spearman,
+    }
+    return metrics
+
+def print_metrics(metrics, prefix=""):
+    for k, v in metrics.items():
+        print(f"{prefix}{k}: {v:.4f}")
 
 def main():
     parser = argparse.ArgumentParser(description="Fusion model to predict HN upvotes from title text + extra features")
     parser.add_argument("--train", action="store_true", help="Train the fusion model")
     parser.add_argument("--test", action="store_true", help="Evaluate the fusion model on the test set")
+    parser.add_argument("--eda", action="store_true", help="Print EDA for train/test datasets")
     args = parser.parse_args()
+
+    # EDA
+    if args.eda:
+        print_eda(TRAIN_FILE)
+        print_eda(TEST_FILE)
+        sys.exit(0)
 
     # Exit if no command args provided
     if not args.train and not args.test:
@@ -275,11 +329,12 @@ def main():
         else:
             print("Fusion model checkpoint not found at", FUSION_MODEL_SAVE_PATH)
             sys.exit(1)
-        test_loss, test_r2, test_mae = evaluate_fusion(model, test_loader, device, criterion)
-        print(f"Test Loss: {test_loss:.4f} | R2: {test_r2:.4f} | MAE: {test_mae:.4f}")
-        wandb.log({"test_loss": test_loss, "test_r2": test_r2, "test_mae": test_mae})
+        metrics = evaluate_fusion(model, test_loader, device, criterion)
+        print_metrics(metrics, prefix="Test ")
+        wandb.log({f"test_{k}": v for k, v in metrics.items()})
 
     wandb.finish()
 
 if __name__ == "__main__":
+    import numpy as np  # Needed for MAPE
     main()
