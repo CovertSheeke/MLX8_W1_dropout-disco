@@ -122,11 +122,6 @@ def split_dataset(pairs, seed=None):
     val_pairs, test_pairs = train_test_split(temp_pairs, test_size=1 - val_size, random_state=seed)
     return train_pairs, val_pairs, test_pairs
 
-txt8_path = get_text8()
-
-ds_pairs, ds_vocab = build_sgram_dataset(context_size=config["context_size"], txt_8_path=txt8_path)
-
-train_pairs, val_pairs, test_pairs = split_dataset(ds_pairs)
 
 def train_one_epoch(model, dataloader, optimizer, loss_fn, vocab_size, device):
     model.train()
@@ -230,6 +225,21 @@ def orchestrate_training(
     wandb.finish()
     return model
 
+logging.basicConfig(
+    level=logging.INFO,  # or DEBUG, WARNING, etc.
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+logger.info("This should appear in the terminal.")
+
+txt8_path = get_text8()
+logger.info(f"Using text8 dataset at: {txt8_path}")
+
+ds_pairs, ds_vocab = build_sgram_dataset(context_size=config["context_size"], txt_8_path=txt8_path)
+logger.info(f"Built skip-gram dataset with {len(ds_pairs)} pairs and vocabulary size {len(ds_vocab)}")
+
+train_pairs, val_pairs, test_pairs = split_dataset(ds_pairs)
 # Example usage
 model = orchestrate_training(train_pairs, val_pairs, test_pairs, len(ds_vocab))
 
