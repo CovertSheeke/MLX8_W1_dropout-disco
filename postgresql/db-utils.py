@@ -18,18 +18,26 @@ if _total_records_env == "":
 else:
     TOTAL_RECORDS_TO_FETCH = int(_total_records_env)
 
+# include a switch for fetching minimal data (for training word2vec)
+MINIMAL_FETCH_ONLY_TITLES = os.getenv("MINIMAL_FETCH_ONLY_TITLES", "0") == "1"
+
 TEST_SIZE = float(os.getenv("TEST_SIZE", "0.2"))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", "42"))
-TRAIN_FILE = os.getenv("TRAIN_FILE", "./data/hn_posts_train.parquet")
-TEST_FILE = os.getenv("TEST_FILE", "./data/hn_posts_test.parquet")
+TRAIN_FILE = os.getenv("TRAIN_FILE", "./.data/hn_posts_train.parquet")
+TEST_FILE = os.getenv("TEST_FILE", "./.data/hn_posts_test.parquet")
+TITLES_FILE = os.getenv("TITLES_FILE", "./.data/hn_titles.parquet")
+
 
 def get_db_engine():
     """Creates and returns a SQLAlchemy engine for the Hacker News database."""
-    print(f"Attempting to connect to: {DB_CONNECTION_STRING.split('@')[-1]}") # Print without credentials
+    if DB_CONNECTION_STRING is None:
+        raise ValueError("DB_CONNECTION_STRING environment variable is not set.")
+    print(f"Attempting to connect to: {DB_CONNECTION_STRING.split('@')[-1]}")
     engine = create_engine(DB_CONNECTION_STRING)
     return engine
 
-def fetch_hn_items(engine, limit=None):
+
+def fetch_hn_items(engine, limit=None, fetch_only_titles=False):
     """
     Fetches Hacker News items (specifically 'story', 'poll', 'pollopt' types),
     focusing on titles and scores, with an optional limit.
@@ -40,6 +48,20 @@ def fetch_hn_items(engine, limit=None):
         pd.DataFrame: DataFrame of filtered Hacker News items.
     """
     print("Preparing to fetch items from hacker_news.items ...")
+    if fetch_only_titles:
+        print("Minimal fetch mode: fetching only post titles for Word2Vec training.")
+        query = """
+        SELECT
+            id,
+            title,
+            score
+        FROM
+            hacker_news.items
+        WHERE
+            score IS NOT NULL
+            AND title IS NOT NULL
+            AND type IN ('story') -- Explicitly filter for desired types
+        """
     query = """
     SELECT
         id,
@@ -58,12 +80,13 @@ def fetch_hn_items(engine, limit=None):
         AND type IN ('story', 'poll', 'pollopt') -- Explicitly filter for desired types
     """
     if limit:
-        query += f" LIMIT {limit}" # Add limit clause
+        query += f" LIMIT {limit}"  # Add limit clause
     print("Executing SQL query for items ...")
     with engine.connect() as connection:
         df_items = pd.read_sql_query(text(query), connection)
     print(f"Fetched {len(df_items)} items of desired types.")
     return df_items
+
 
 def fetch_hn_users(engine):
     """Fetches Hacker News user data, focusing on karma."""
@@ -83,27 +106,58 @@ def fetch_hn_users(engine):
     print(f"Fetched {len(df_users)} users.")
     return df_users
 
+
 if __name__ == "__main__":
     engine = get_db_engine()
+    print("Hacker News data ingest script started ...")
+
+    if MINIMAL_FETCH_ONLY_TITLES:
+        print("Minimal fetch mode: fetching only titles for Word2Vec training.")
+        df_titles = fetch_hn_items(
+            engine=engine,
+            limit=TOTAL_RECORDS_TO_FETCH,
+            fetch_only_titles=True,
+        )
+        if df_titles.empty or "title" not in df_titles.columns:
+            print("No titles found or 'title' column is missing. Exiting.")
+            exit()
+
+        os.makedirs(os.path.dirname(TITLES_FILE), exist_ok=True)
+        df_titles.to_parquet(TITLES_FILE, index=False)
+
+        # display basic info about df but don't do a full .describe() run
+        print("Titles DataFrame info:")
+        df_titles.info()
+
+        print(f"Successfully saved {len(df_titles)} titles to {TITLES_FILE}")
+        print("Exiting after minimal fetch")
+        exit()  # exit in order to do minimal work
+
     print("Starting data fetching and processing ...")
     df_items = fetch_hn_items(engine, limit=TOTAL_RECORDS_TO_FETCH)
     df_users = fetch_hn_users(engine)
     print("Merging items and users DataFrames ...")
-    df_merged = pd.merge(df_items, df_users, left_on='author', right_on='id', how='left')
-    df_merged.rename(columns={'id_y': 'user_id', 'id_x': 'item_id'}, inplace=True)
-    df_merged['karma'].fillna(0, inplace=True)
-    df_merged['descendants'].fillna(0, inplace=True)
+    df_merged = pd.merge(
+        df_items, df_users, left_on="author", right_on="id", how="left"
+    )
+    df_merged.rename(columns={"id_y": "user_id", "id_x": "item_id"}, inplace=True)
+    df_merged["karma"].fillna(0, inplace=True)
+    df_merged["descendants"].fillna(0, inplace=True)
     print(f"\nTotal merged records after type filtering: {len(df_merged)}")
     print(f"Posts with missing author karma: {df_merged['karma'].isnull().sum()}")
-    df_cleaned = df_merged.dropna(subset=['score', 'title']).copy()
+    df_cleaned = df_merged.dropna(subset=["score", "title"]).copy()
     print("Splitting data into train and test sets ...")
     df_train, df_test = train_test_split(
         df_cleaned,
         test_size=TEST_SIZE,
         random_state=RANDOM_STATE,
     )
-    print(f"\nTrain set size: {len(df_train)} records ({len(df_train)/len(df_cleaned):.1%})")
-    print(f"Test set size: {len(df_test)} records ({len(df_test)/len(df_cleaned):.1%})")
+    print(
+        f"\nTrain set size: {len(df_train)} records ({len(df_train) / len(df_cleaned):.1%})"
+    )
+    print(
+        f"Test set size: {len(df_test)} records ({len(df_test) / len(df_cleaned):.1%})"
+    )
     os.makedirs(os.path.dirname(TRAIN_FILE), exist_ok=True)
     os.makedirs(os.path.dirname(TEST_FILE), exist_ok=True)
     print("Saving train and test sets to parquet files ...")
@@ -114,9 +168,9 @@ if __name__ == "__main__":
     print("\nTrain DataFrame info:")
     df_train.info()
     print("\nTrain DataFrame describe:")
-    print(df_train.describe(include='all'))
+    print(df_train.describe(include="all"))
     print("\nTest DataFrame info:")
     df_test.info()
     print("\nTest DataFrame describe:")
-    print(df_test.describe(include='all'))
+    print(df_test.describe(include="all"))
     print("\nData fetching and splitting complete.")

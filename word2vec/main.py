@@ -45,6 +45,7 @@ CONFIG = {
     "embedding_max_norm": 1.0,
     "train_proportion": 0.9,  # proportion of dataset to use for training
     "val_proportion": 0.05,  # proportion of dataset to use for validation
+    "include_hn_titles": True,  # whether to include HN titles in the dataset
 }
 
 
@@ -79,7 +80,7 @@ def train() -> None:
         context_size=run.config["context_size"],
         min_freq=run.config["freq_threshold"],
         subsampling_threshold=run.config["subsampling_threshold"],
-        include_hn_titles=False,
+        include_hn_titles=run.config["include_hn_titles"],
     )
 
     # split dataset into train, validation, and test sets

@@ -21,6 +21,10 @@ TEXT8_ZIP_URL = "http://mattmahoney.net/dc/text8.zip"
 TEXT8_FILENAME = "text8"
 TEXT8_EXPECTED_LENGTH = 100_000_000  # text8 is expected to be 100 million chars
 
+# manually set env vars also used in data ingest (see .env.example / db-utils.py)
+TITLES_FILE = "hn_posts_titles.parquet"
+MINIMAL_FETCH_ONLY_TITLES = True
+
 
 # custom map-style dataset for CBOW
 class CBOWDataset(Dataset):
@@ -52,17 +56,19 @@ class CBOWDataset(Dataset):
         )
 
 
-# TODO: split out test dataset for full corpus (ie. from both HN posts and text8)
 def build_cbow_dataset(
     context_size: int = 3,
     min_freq: int = 5,
     subsampling_threshold: float = 1e-5,
     include_hn_titles: bool = True,
 ) -> tuple[CBOWDataset, dict]:
-    # TODO: also get comments from HN, to be appended to the corpus
+    # TODO: also get comments from HN, to be appended to the corpus ??
     hn_titles = ""
     if include_hn_titles:
-        parquet_path = os.path.join(DATA_DIR, TRAIN_PROCESSED_FILENAME)
+        if MINIMAL_FETCH_ONLY_TITLES:
+            parquet_path = os.path.join(DATA_DIR, TITLES_FILE)
+        else:
+            parquet_path = os.path.join(DATA_DIR, TRAIN_PROCESSED_FILENAME)
         logger.debug(f"Loading data from {parquet_path}...")
         hn_posts = pd.read_parquet(parquet_path)
         # show some basic info about the data we pulled from parquet
