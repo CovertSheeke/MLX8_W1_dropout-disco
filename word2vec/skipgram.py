@@ -18,7 +18,7 @@ WANDB_TEAM = "freemvmt-london"
 WANDB_PROJECT = "word2vec"
 
 # hot swap essential config from command line
-EPOCHS = int(os.environ.get("EPOCHS", 30))
+EPOCHS = int(os.environ.get("EPOCHS", 1))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 2048))
 
 
@@ -66,15 +66,10 @@ def build_sgram_dataset(context_size: int = None, txt_8_path: str = "data/text8.
         subsampling_threshold=config["subsampling_threshold"]
     )
     
-    print(text_tokens[:10])  # Print first 10 tokens for verification
-
     text_token_inds = get_tokens_as_indices(text_tokens, vocab)
-
-    print(text_token_inds[:10])  # Print first 10 token indices for verification
 
     # Generate skip-gram pairs
     skipgram_pairs = generate_skipgram_pairs(text_token_inds, context_size)
-    print(skipgram_pairs[:10])  # Print first 10 pairs for verification
     
     return skipgram_pairs, vocab
 
