@@ -120,18 +120,23 @@ class SkipGramModel(torch.nn.Module):
 
 # Split skipgram_pairs into train, val, test sets (80/10/10 split)
 def split_dataset(pairs, seed=None):
+    logger.info("Starting split_dataset")
     if seed is None:
         seed = config["seed"]
     train_pairs, temp_pairs = train_test_split(pairs, test_size=config["val_split"] + config["test_split"], random_state=seed)
+    logger.info(f"Split into train ({len(train_pairs)}) and temp ({len(temp_pairs)}) pairs")
     val_size = config["val_split"] / (config["val_split"] + config["test_split"])
     val_pairs, test_pairs = train_test_split(temp_pairs, test_size=1 - val_size, random_state=seed)
+    logger.info(f"Split temp into val ({len(val_pairs)}) and test ({len(test_pairs)}) pairs")
     return train_pairs, val_pairs, test_pairs
 
 
 def train_one_epoch(model, dataloader, optimizer, loss_fn, vocab_size, device):
+    logger.info("Starting train_one_epoch")
     model.train()
     total_loss = 0
-    for center, context in tqdm(dataloader, desc="Training", leave=False):
+    for batch_idx, (center, context) in enumerate(tqdm(dataloader, desc="Training", leave=False)):
+        logger.debug(f"Batch {batch_idx}: center shape {center.shape}, context shape {context.shape}")
         center, context = center.to(device), context.to(device)
         optimizer.zero_grad()
         # Positive samples
@@ -147,14 +152,19 @@ def train_one_epoch(model, dataloader, optimizer, loss_fn, vocab_size, device):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+        if batch_idx % 100 == 0:
+            logger.info(f"Batch {batch_idx}: loss {loss.item():.4f}")
     avg_loss = total_loss / len(dataloader)
+    logger.info(f"Finished train_one_epoch with avg_loss {avg_loss:.4f}")
     return avg_loss
 
 def evaluate_one_epoch(model, dataloader, loss_fn, vocab_size, device):
+    logger.info("Starting evaluate_one_epoch")
     model.eval()
     total_loss = 0
     with torch.no_grad():
-        for center, context in tqdm(dataloader, desc="Evaluating", leave=False):
+        for batch_idx, (center, context) in enumerate(tqdm(dataloader, desc="Evaluating", leave=False)):
+            logger.debug(f"Eval Batch {batch_idx}: center shape {center.shape}, context shape {context.shape}")
             center, context = center.to(device), context.to(device)
             pos_labels = torch.ones(center.size(0), device=device)
             pos_score = model(center, context)
@@ -165,7 +175,10 @@ def evaluate_one_epoch(model, dataloader, loss_fn, vocab_size, device):
             neg_loss = loss_fn(neg_score, neg_labels)
             loss = pos_loss + neg_loss
             total_loss += loss.item()
+            if batch_idx % 100 == 0:
+                logger.info(f"Eval Batch {batch_idx}: loss {loss.item():.4f}")
     avg_loss = total_loss / len(dataloader)
+    logger.info(f"Finished evaluate_one_epoch with avg_loss {avg_loss:.4f}")
     return avg_loss
 
 def orchestrate_training(
@@ -179,6 +192,7 @@ def orchestrate_training(
     epochs=None,
     device=None
 ):
+    logger.info("Starting orchestrate_training")
     if embedding_dim is None:
         embedding_dim = config["embedding_dim"]
     if batch_size is None:
@@ -190,44 +204,62 @@ def orchestrate_training(
     if device is None:
         device = config["device"]
 
+    logger.info(f"Training config: embedding_dim={embedding_dim}, batch_size={batch_size}, lr={lr}, epochs={epochs}, device={device}")
+
     # Initialize wandb
-    wandb.init(
-        project=WANDB_PROJECT,
-        entity=WANDB_TEAM,
-        config={
-            "embedding_dim": embedding_dim,
-            "batch_size": batch_size,
-            "learning_rate": lr,
-            "epochs": epochs,
-            "architecture": config["architecture"],
-            "dataset": config["dataset"],
-        },
-        reinit=True,
-    )
+    try:
+        wandb.init(
+            project=WANDB_PROJECT,
+            entity=WANDB_TEAM,
+            config={
+                "embedding_dim": embedding_dim,
+                "batch_size": batch_size,
+                "learning_rate": lr,
+                "epochs": epochs,
+                "architecture": config["architecture"],
+                "dataset": config["dataset"],
+            },
+            reinit=True,
+        )
+        logger.info("wandb initialized successfully")
+    except Exception as e:
+        logger.error(f"wandb initialization failed: {e}")
 
     train_dataset = SkipGramDataset(train_pairs)
     val_dataset = SkipGramDataset(val_pairs)
     test_dataset = SkipGramDataset(test_pairs)
 
+    logger.info(f"Datasets created: train={len(train_dataset)}, val={len(val_dataset)}, test={len(test_dataset)}")
+
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
 
+    logger.info("DataLoaders created")
+
     model = SkipGramModel(vocab_size, embedding_dim).to(device)
+    logger.info("Model created and moved to device")
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = torch.nn.BCEWithLogitsLoss()
 
     for epoch in range(epochs):
-        logger.info(f"Epoch {epoch+1}/{epochs}")
+        logger.info(f"Epoch {epoch+1}/{epochs} starting")
         train_loss = train_one_epoch(model, train_loader, optimizer, loss_fn, vocab_size, device)
         val_loss = evaluate_one_epoch(model, val_loader, loss_fn, vocab_size, device)
-        logger.info(f"Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}")
-        wandb.log({"epoch": epoch+1, "train_loss": train_loss, "val_loss": val_loss})
+        logger.info(f"Epoch {epoch+1}: Train loss: {train_loss:.4f} | Val loss: {val_loss:.4f}")
+        try:
+            wandb.log({"epoch": epoch+1, "train_loss": train_loss, "val_loss": val_loss})
+        except Exception as e:
+            logger.error(f"wandb.log failed: {e}")
 
     test_loss = evaluate_one_epoch(model, test_loader, loss_fn, vocab_size, device)
     logger.info(f"Test loss: {test_loss:.4f}")
-    wandb.log({"test_loss": test_loss})
-    wandb.finish()
+    try:
+        wandb.log({"test_loss": test_loss})
+        wandb.finish()
+    except Exception as e:
+        logger.error(f"wandb.log or finish failed: {e}")
+    logger.info("orchestrate_training finished")
     return model
 
 
