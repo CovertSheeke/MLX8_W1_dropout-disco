@@ -7,6 +7,11 @@ from data import get_text8
 from tokeniser import build_vocab, get_tokens_as_indices, tokenise
 import wandb
 
+logging.basicConfig(
+    level=logging.INFO,  # or DEBUG, WARNING, etc.
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
 logger = logging.getLogger(__name__)
 
 # constants (excluding hyperparameters)
@@ -225,13 +230,6 @@ def orchestrate_training(
     wandb.finish()
     return model
 
-logging.basicConfig(
-    level=logging.INFO,  # or DEBUG, WARNING, etc.
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-logger = logging.getLogger(__name__)
-logger.info("This should appear in the terminal.")
 
 txt8_path = get_text8()
 logger.info(f"Using text8 dataset at: {txt8_path}")
