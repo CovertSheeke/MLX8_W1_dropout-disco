@@ -214,7 +214,8 @@ def evaluate_fusion(model, dataloader, device, criterion):
     targets = torch.cat(all_targets).numpy()
     r2 = r2_score(targets, preds)
     mae = mean_absolute_error(targets, preds)
-    rmse = mean_squared_error(targets, preds, squared=False)
+    # Compute RMSE in a way compatible with all sklearn versions
+    rmse = np.sqrt(mean_squared_error(targets, preds))
     mape = (np.abs((targets - preds) / np.clip(targets, 1e-8, None))).mean()
     medae = median_absolute_error(targets, preds)
     evs = explained_variance_score(targets, preds)
