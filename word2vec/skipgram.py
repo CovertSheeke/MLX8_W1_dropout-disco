@@ -120,6 +120,7 @@ class SkipGramModel(torch.nn.Module):
 
 # Split skipgram_pairs into train, val, test sets (80/10/10 split)
 def split_dataset(pairs, seed=None):
+    print("inside split_dataset")
     logger.info("Starting split_dataset")
     if seed is None:
         seed = config["seed"]
@@ -269,7 +270,9 @@ logger.info(f"Using text8 dataset at: {txt8_path}")
 ds_pairs, ds_vocab = build_sgram_dataset(context_size=config["context_size"], txt_8_path=txt8_path)
 logger.info(f"Built skip-gram dataset with {len(ds_pairs)} pairs and vocabulary size {len(ds_vocab)}")
 
+print("gets to here")
 train_pairs, val_pairs, test_pairs = split_dataset(ds_pairs)
+print("gets to here too")
 # Example usage
 model = orchestrate_training(train_pairs, val_pairs, test_pairs, len(ds_vocab))
 
