@@ -21,7 +21,7 @@ load_dotenv()
 TRAIN_FILE = os.getenv("PROCESSED_TRAIN_FILE", "../postgresql/.data/hn_posts_train_processed.parquet")
 TEST_FILE = os.getenv("PROCESSED_TEST_FILE", "../postgresql/.data/hn_posts_test_processed.parquet")
 WORD2VEC_PATH = os.getenv("WORD2VEC_PATH", "../text8/.data/text8_compare.pt")
-FUSION_MODEL_SAVE_PATH = os.getenv("FUSION_MODEL_SAVE_PATH", "../postgresql/.data/fusion_model.pt")
+FUSION_MODEL_SAVE_PATH = os.getenv("FUSION_MODEL_SAVE_PATH", "./.data/fusion_model.pt")
 
 # Hyperparameters (example values; see .env.example for full list)
 BATCH_SIZE = int(os.getenv("FUSION_BATCH_SIZE", "64"))

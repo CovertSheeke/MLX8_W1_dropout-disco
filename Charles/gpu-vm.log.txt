@@ -1,0 +1,753 @@
+/256 [01:08<00:00,  3.72it/s]
+Epoch 5 — Loss: 1.0122 — Pos: 2.2243 — Neg: -3.9021
+CBOW DataLoader params: batch_size=65536, shuffle=True, num_workers=8, pin_memory=True
+Training CBOW...
+Epoch 1: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 256/256 [01:31<00:00,  2.78it/s]
+Epoch 1 — Loss: 2.3292 — Pos: -0.2259 — Neg: -1.7734
+Epoch 2: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 256/256 [01:30<00:00,  2.82it/s]
+Epoch 2 — Loss: 1.7957 — Pos: -0.3514 — Neg: -2.8118
+Epoch 3: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 256/256 [01:32<00:00,  2.78it/s]
+Epoch 3 — Loss: 1.7908 — Pos: -0.3445 — Neg: -2.8744
+Epoch 4: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 256/256 [01:31<00:00,  2.81it/s]
+Epoch 4 — Loss: 1.7837 — Pos: -0.3331 — Neg: -2.8987
+Epoch 5: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 256/256 [01:30<00:00,  2.81it/s]
+Epoch 5 — Loss: 1.7512 — Pos: -0.2835 — Neg: -2.9231
+Training complete. Saving models and embeddings...
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb: cbow_analogy_king_queen_man_woman █▁▂▄▇
+wandb:                   cbow_batch_loss █▅▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▃▃▄▄▄▃▄▄▄▃▄▃▄▃▃▃▃▃▁
+wandb:              cbow_batch_neg_score ███▆▄▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:              cbow_batch_pos_score ██▇▆▆▄▄▂▂▁▁▁▁▁▁▁▁▁▁▁▂▁▂▁▁▂▂▂▂▁▂▂▂▂▂▂▂▂▃▃
+wandb:        cbow_context_emb_norm_mean ▁▃▄▅▅▅▅▅▅▅▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▇▇▇▇▇▇▇▇▇█████
+wandb:  cbow_context_emb_norm_mean_epoch ▁▂▃▅█
+wandb:                         cbow_loss █▂▁▁▁
+wandb:                    cbow_neg_score █▂▁▁▁
+wandb:                    cbow_pos_score █▁▁▂▅
+wandb:         cbow_target_emb_norm_mean ▁▃▆▆▆▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇████████
+wandb:   cbow_target_emb_norm_mean_epoch ▁▃▄▅█
+wandb:                             epoch ▁▁▁▃▃▃▃▃▅▅▆▆▆█████▁▁▁▁▃▃▃▃▃▅▅▅▅▆▆▆▆▆████
+wandb: sgns_analogy_king_queen_man_woman ▄▄▁▂█
+wandb:                   sgns_batch_loss █▇▆▄▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:              sgns_batch_neg_score █▆▄▄▃▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:              sgns_batch_pos_score ▁▁▁▁▁▅▅▅▆▆▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇████████████
+wandb:        sgns_context_emb_norm_mean ▁▂▄▅▆▇▇▇▇▇▇▇▇▇▇▇▇███████████████████████
+wandb:  sgns_context_emb_norm_mean_epoch ▁▄▆▇█
+wandb:                         sgns_loss █▁▁▁▁
+wandb:                    sgns_neg_score █▂▁▁▁
+wandb:                    sgns_pos_score ▁▆▇██
+wandb:         sgns_target_emb_norm_mean ▁▃▆▆▆▆▆▇▇▇▇▇▇▇▇▇▇▇▇▇████████████████████
+wandb:   sgns_target_emb_norm_mean_epoch ▁▅▆▇█
+wandb: 
+wandb: Run summary:
+wandb: cbow_analogy_king_queen_man_woman -0.51522
+wandb:                   cbow_batch_loss 1.73013
+wandb:              cbow_batch_neg_score -2.9269
+wandb:              cbow_batch_pos_score -0.22146
+wandb:        cbow_context_emb_norm_mean 1.43317
+wandb:  cbow_context_emb_norm_mean_epoch 1.43317
+wandb:                         cbow_loss 1.7512
+wandb:                    cbow_neg_score -2.92307
+wandb:                    cbow_pos_score -0.28346
+wandb:         cbow_target_emb_norm_mean 1.68217
+wandb:   cbow_target_emb_norm_mean_epoch 1.68217
+wandb:                             epoch 5
+wandb: sgns_analogy_king_queen_man_woman 0.13626
+wandb:                   sgns_batch_loss 0.986
+wandb:              sgns_batch_neg_score -3.92453
+wandb:              sgns_batch_pos_score 2.29206
+wandb:        sgns_context_emb_norm_mean 2.15237
+wandb:  sgns_context_emb_norm_mean_epoch 2.15237
+wandb:                         sgns_loss 1.0122
+wandb:                    sgns_neg_score -3.90214
+wandb:                    sgns_pos_score 2.22429
+wandb:         sgns_target_emb_norm_mean 1.78943
+wandb:   sgns_target_emb_norm_mean_epoch 1.78943
+wandb: 
+wandb: 🚀 View run text8-sgns-cbow_202506121220 at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/be9o3h9q
+wandb: ⭐️ View project at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20250612_122018-be9o3h9q/logs
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/text8$ python word2vec-text8.py --test
+Loading model checkpoint...
+Most similar to 'king':
+  alexander       0.9928
+  iv              0.9917
+  ii              0.9916
+  grandson        0.9902
+  iii             0.9898
+  son             0.9898
+  prince          0.9886
+  founder         0.9885
+  nephew          0.9885
+  daughter        0.9881
+Most similar to 'queen':
+  alexander       0.9844
+  ii              0.9835
+  marries         0.9835
+  lady            0.9833
+  duchess         0.9830
+  king            0.9823
+  tudor           0.9821
+  elisabeth       0.9816
+  nephew          0.9816
+  florence        0.9810
+Most similar to 'king':
+  assassinated    0.9868
+  prince          0.9852
+  ii              0.9842
+  regent          0.9809
+  commander       0.9803
+  alexander       0.9794
+  appointed       0.9793
+  vii             0.9778
+  queen           0.9750
+  deposed         0.9746
+Most similar to 'queen':
+  elizabeth       0.9885
+  vii             0.9849
+  governor        0.9840
+  niece           0.9837
+  savoy           0.9820
+  aragon          0.9819
+  lieutenant      0.9819
+  commissioned    0.9818
+  ambassador      0.9814
+  caroline        0.9805
+Analogy 'king - man + woman':
+  alexander       0.9888
+  iv              0.9877
+  daughter        0.9874
+  grandson        0.9873
+  son             0.9866
+  iii             0.9865
+  philip          0.9863
+  prince          0.9861
+  catherine       0.9857
+  founder         0.9857
+Analogy 'king - man + woman':
+  sons            0.9790
+  daughters       0.9784
+  died            0.9779
+  regent          0.9761
+  prince          0.9757
+  lord            0.9745
+  alexander       0.9741
+  frederick       0.9729
+  resigned        0.9725
+  succeeded       0.9716
+Vector length for 'king - man + woman - queen': 0.493436
+Vector length for 'king - man + woman - queen': 1.095543
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/text8$ cd ..
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco$ git pull
+remote: Enumerating objects: 9, done.
+remote: Counting objects: 100% (9/9), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 5 (delta 3), reused 5 (delta 3), pack-reused 0 (from 0)
+Unpacking objects: 100% (5/5), 1.39 KiB | 1.39 MiB/s, done.
+From https://github.com/CovertSheeke/MLX8_W1_dropout-disco
+   a5e2b08..6fb97b7  main       -> origin/main
+Updating a5e2b08..6fb97b7
+Fast-forward
+ Charles/.env.example      |  4 ++--
+ Charles/feature-fusion.py | 65 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 62 insertions(+), 7 deletions(-)
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco$ cd Charles/
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ vim .
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ vim .
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion.py
+No action specified. Use --train and/or --test.
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion.py --train
+Loading word2vec checkpoint from: ../text8/.data/text8_compare.pt
+Traceback (most recent call last):
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/Charles/feature-fusion.py", line 340, in <module>
+    main()
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/Charles/feature-fusion.py", line 280, in main
+    model = FusionModel(w2v_weight, num_words, num_types, num_days, num_domains)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/Charles/feature-fusion.py", line 115, in __init__
+    self.w2v_emb.weight.data.copy_(word2vec_weight)
+RuntimeError: The size of tensor a (100) must match the size of tensor b (200) at non-singleton dimension 1
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ vim 
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ vim .
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion.py --train
+Loading word2vec checkpoint from: ../text8/.data/text8_compare.pt
+wandb: Currently logged in as: charles-cai to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /home/cryptocharlie/MLX8_W1_dropout-disco/Charles/wandb/run-20250612_124433-ca56x753
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run feature-fusion_202506121244
+wandb: ⭐️ View project at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: 🚀 View run at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/ca56x753
+Loading training dataset from: ../postgresql/.data/hn_posts_train_processed.parquet
+Max type_id: 4
+Max day_of_week_id: 6
+Max domain_id: 3757
+Num unique type_id: 3
+Num unique day_of_week_id: 7
+Num unique domain_id: 3758
+Starting training for 5 epochs...
+Training: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:36<00:00,  4.61s/it]
+Epoch 1 - Train Loss: 3930.0843
+Training: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:16<00:00,  4.28s/it]
+Epoch 2 - Train Loss: 2658.1005
+Training: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:15<00:00,  4.26s/it]
+Epoch 3 - Train Loss: 2140.9559
+Training: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:26<00:00,  4.44s/it]
+Epoch 4 - Train Loss: 1572.1771
+Training: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:15<00:00,  4.25s/it]
+Epoch 5 - Train Loss: 1353.2072
+Fusion model saved to ../postgresql/.data/fusion_model.pt
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb: batch_loss █▃▃▄▃▂▂▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:      epoch ▁▃▅▆█
+wandb: train_loss █▅▃▂▁
+wandb: 
+wandb: Run summary:
+wandb: batch_loss 1337.16016
+wandb:      epoch 5
+wandb: train_loss 1353.20715
+wandb: 
+wandb: 🚀 View run feature-fusion_202506121244 at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/ca56x753
+wandb: ⭐️ View project at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20250612_124433-ca56x753/logs
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion.py --test
+Loading word2vec checkpoint from: ../text8/.data/text8_compare.pt
+wandb: Currently logged in as: charles-cai to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /home/cryptocharlie/MLX8_W1_dropout-disco/Charles/wandb/run-20250612_131317-20s5vqz7
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run feature-fusion_202506121313
+wandb: ⭐️ View project at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: 🚀 View run at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/20s5vqz7
+Loading test dataset from: ../postgresql/.data/hn_posts_test_processed.parquet
+Max type_id: 4
+Max day_of_week_id: 6
+Max domain_id: 3757
+Num unique type_id: 3
+Num unique day_of_week_id: 7
+Num unique domain_id: 3758
+Loaded fusion model checkpoint.
+Evaluating: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 15/15 [00:57<00:00,  3.86s/it]
+Traceback (most recent call last):
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/Charles/feature-fusion.py", line 340, in <module>
+    main()
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/Charles/feature-fusion.py", line 332, in main
+    metrics = evaluate_fusion(model, test_loader, device, criterion)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/Charles/feature-fusion.py", line 217, in evaluate_fusion
+    rmse = mean_squared_error(targets, preds, squared=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptocharlie/MLX8_W1_dropout-disco/.venv/lib/python3.12/site-packages/sklearn/utils/_param_validation.py", line 196, in wrapper
+    params = func_sig.bind(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptocharlie/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/inspect.py", line 3280, in bind
+    return self._bind(args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptocharlie/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/lib/python3.12/inspect.py", line 3269, in _bind
+    raise TypeError(
+TypeError: got an unexpected keyword argument 'squared'
+wandb: 
+wandb: 🚀 View run feature-fusion_202506121313 at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/20s5vqz7
+wandb: Find logs at: wandb/run-20250612_131317-20s5vqz7/logs
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ git pull
+remote: Enumerating objects: 24, done.
+remote: Counting objects: 100% (24/24), done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 14 (delta 10), reused 14 (delta 10), pack-reused 0 (from 0)
+Unpacking objects: 100% (14/14), 2.54 KiB | 865.00 KiB/s, done.
+From https://github.com/CovertSheeke/MLX8_W1_dropout-disco
+   6fb97b7..ed2c224  main       -> origin/main
+Updating 6fb97b7..ed2c224
+Fast-forward
+ .env.example              |  4 +++-
+ Charles/feature-fusion.py |  3 ++-
+ load_env.sh               |  4 ++++
+ postgresql/.env.example   |  6 ++++--
+ postgresql/db-utils.py    | 84 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------------
+ word2vec/data.py          | 12 +++++++++---
+ word2vec/main.py          |  3 ++-
+ 7 files changed, 93 insertions(+), 23 deletions(-)
+ create mode 100644 load_env.sh
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion.py --test
+Loading word2vec checkpoint from: ../text8/.data/text8_compare.pt
+wandb: Currently logged in as: charles-cai to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /home/cryptocharlie/MLX8_W1_dropout-disco/Charles/wandb/run-20250612_131929-j36fdcly
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run feature-fusion_202506121319
+wandb: ⭐️ View project at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: 🚀 View run at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/j36fdcly
+Loading test dataset from: ../postgresql/.data/hn_posts_test_processed.parquet
+Max type_id: 4
+Max day_of_week_id: 6
+Max domain_id: 3757
+Num unique type_id: 3
+Num unique day_of_week_id: 7
+Num unique domain_id: 3758
+Loaded fusion model checkpoint.
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████| 15/15 [01:03<00:00,  4.26s/it]
+Test loss: 1207.3016
+Test r2: 0.6395
+Test mae: 9.7734
+Test rmse: 34.7462
+Test mape: 100595.4688
+Test medae: 4.4295
+Test explained_variance: 0.6395
+Test max_error: 3425.3315
+Test pearson: 0.8038
+Test spearman: 0.5246
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb: test_explained_variance ▁
+wandb:               test_loss ▁
+wandb:                test_mae ▁
+wandb:               test_mape ▁
+wandb:          test_max_error ▁
+wandb:              test_medae ▁
+wandb:            test_pearson ▁
+wandb:                 test_r2 ▁
+wandb:               test_rmse ▁
+wandb:           test_spearman ▁
+wandb: 
+wandb: Run summary:
+wandb: test_explained_variance 0.63947
+wandb:               test_loss 1207.30157
+wandb:                test_mae 9.77336
+wandb:               test_mape 100595.46875
+wandb:          test_max_error 3425.33154
+wandb:              test_medae 4.42948
+wandb:            test_pearson 0.80377
+wandb:                 test_r2 0.63946
+wandb:               test_rmse 34.74624
+wandb:           test_spearman 0.52458
+wandb: 
+wandb: 🚀 View run feature-fusion_202506121319 at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/j36fdcly
+wandb: ⭐️ View project at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20250612_131929-j36fdcly/logs
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion.py --eda
+=== EDA for ../postgresql/.data/hn_posts_train_processed.parquet ===
+Num rows: 3923571
+Columns: ['item_id', 'title', 'score', 'author', 'time', 'url', 'type', 'descendants', 'user_id', 'karma', 'type_id', 'hour_of_day', 'day_of_week', 'day_of_week_id', 'domain', 'domain_id']
+Sample rows:
+     item_id                                              title  score  ... day_of_week_id                         domain domain_id
+0  14539373            Xbox One X: Everything you need to know      1  ...              0                arstechnica.com       184
+1   1180306      What is Ovarian Cancer | Signs Ovarian Cancer      1  ...              2                   cancerin.com         0
+2  22995788  Low-cost Circuit For Reading Soil Moisture Fro...      3  ...              0                     medium.com      2110
+3   5786393    Technologists Need to Team With an Entrepreneur      1  ...              2  blog.startupprofessionals.com       473
+4  13008423  AppleScript, the perfect adjunct to iTunes: An...     94  ...              0                   macworld.com      2021
+
+[5 rows x 16 columns]
+Describe:
+              item_id                      title         score   author  ...   day_of_week day_of_week_id      domain     domain_id
+count   3.923571e+06                    3923571  3.923571e+06  3923571  ...  3.923571e+06   3.923571e+06     3683110  3.923571e+06
+unique           NaN                    3640576           NaN   424760  ...           NaN            NaN      483372           NaN
+top              NaN  Y Combinator: Bookmarklet           NaN  rbanffy  ...           NaN            NaN  github.com           NaN
+freq             NaN                       2390           NaN    24380  ...           NaN            NaN      128155           NaN
+mean    1.687646e+07                        NaN  1.407774e+01      NaN  ...  2.643349e+00   2.643349e+00         NaN  1.137056e+03
+min     1.000000e+00                        NaN -1.000000e+00      NaN  ...  0.000000e+00   0.000000e+00         NaN  0.000000e+00
+25%     6.817804e+06                        NaN  1.000000e+00      NaN  ...  1.000000e+00   1.000000e+00         NaN  0.000000e+00
+50%     1.499428e+07                        NaN  2.000000e+00      NaN  ...  3.000000e+00   3.000000e+00         NaN  3.480000e+02
+75%     2.546945e+07                        NaN  4.000000e+00      NaN  ...  4.000000e+00   4.000000e+00         NaN  2.267000e+03
+max     4.183246e+07                        NaN  6.015000e+03      NaN  ...  6.000000e+00   6.000000e+00         NaN  3.757000e+03
+std     1.168912e+07                        NaN  5.960116e+01      NaN  ...  1.867382e+00   1.867382e+00         NaN  1.321564e+03
+
+[11 rows x 16 columns]
+Type value counts:
+ type_id
+0    3922004
+3       1525
+4         42
+Name: count, dtype: int64
+Day of week value counts:
+ day_of_week_id
+1    668320
+2    660541
+3    653378
+0    610698
+4    592535
+5    376901
+6    361198
+Name: count, dtype: int64
+Domain value counts:
+ domain_id
+0       1759081
+1409     128155
+3730      95754
+2110      95508
+2404      56317
+         ...   
+1358         74
+2543         73
+19           73
+1073         72
+1637         69
+Name: count, Length: 3758, dtype: int64
+Score stats:
+ count    3.923571e+06
+mean     1.407774e+01
+std      5.960116e+01
+min     -1.000000e+00
+25%      1.000000e+00
+50%      2.000000e+00
+75%      4.000000e+00
+max      6.015000e+03
+Name: score, dtype: float64
+Karma stats:
+ count    3.923571e+06
+mean     1.351103e+04
+std      3.187214e+04
+min     -2.470000e+02
+25%      4.000000e+01
+50%      1.120000e+03
+75%      8.690000e+03
+max      3.946590e+05
+Name: karma, dtype: float64
+Descendants stats:
+ count    3.923571e+06
+mean     6.877916e+00
+std      3.644524e+01
+min     -1.000000e+00
+25%      0.000000e+00
+50%      0.000000e+00
+75%      1.000000e+00
+max      3.859000e+03
+Name: descendants, dtype: float64
+Hour of day stats:
+ count    3.923571e+06
+mean     1.328037e+01
+std      6.472258e+00
+min      0.000000e+00
+25%      9.000000e+00
+50%      1.500000e+01
+75%      1.800000e+01
+max      2.300000e+01
+Name: hour_of_day, dtype: float64
+Title length stats:
+ count    3.923571e+06
+mean     7.728725e+00
+std      3.087508e+00
+min      0.000000e+00
+25%      5.000000e+00
+50%      8.000000e+00
+75%      1.000000e+01
+max      3.800000e+01
+Name: title, dtype: float64
+=== EDA for ../postgresql/.data/hn_posts_test_processed.parquet ===
+Num rows: 980893
+Columns: ['item_id', 'title', 'score', 'author', 'time', 'url', 'type', 'descendants', 'user_id', 'karma', 'type_id', 'hour_of_day', 'day_of_week', 'day_of_week_id', 'domain', 'domain_id']
+Sample rows:
+     item_id                                              title  score  ... day_of_week_id                         domain domain_id
+0  28427105                                        WeatherStar      2  ...              6               en.wikipedia.org      1141
+1  36615970  Bootstrapping the Compiler – Rust Compiler Dev...      3  ...              3  rustc-dev-guide.rust-lang.org         0
+2  28523094  SVG-equations: convert SVG paths to mathematic...      2  ...              1                     github.com      1409
+3   3859190  How Mobile Phone Recycling benefits Your Small...      1  ...              2                noobpreneur.com      2369
+4  25178983  Politics, Science and the Remarkable Race for ...      3  ...              6                    nytimes.com      2404
+
+[5 rows x 16 columns]
+Describe:
+              item_id                      title          score   author  ...    day_of_week day_of_week_id      domain      domain_id
+count   9.808930e+05                     980893  980893.000000   980893  ...  980893.000000  980893.000000      920720  980893.000000
+unique           NaN                     955548            NaN   196796  ...            NaN            NaN      196102            NaN
+top              NaN  Y Combinator: Bookmarklet            NaN  rbanffy  ...            NaN            NaN  github.com            NaN
+freq             NaN                        592            NaN     6157  ...            NaN            NaN       32148            NaN
+mean    1.688942e+07                        NaN      13.941847      NaN  ...       2.642847       2.642847         NaN    1138.335885
+min     2.000000e+00                        NaN       0.000000      NaN  ...       0.000000       0.000000         NaN       0.000000
+25%     6.833776e+06                        NaN       1.000000      NaN  ...       1.000000       1.000000         NaN       0.000000
+50%     1.501673e+07                        NaN       2.000000      NaN  ...       3.000000       3.000000         NaN     365.000000
+75%     2.548990e+07                        NaN       4.000000      NaN  ...       4.000000       4.000000         NaN    2265.000000
+max     4.183221e+07                        NaN    3636.000000      NaN  ...       6.000000       6.000000         NaN    3757.000000
+std     1.168816e+07                        NaN      57.867123      NaN  ...       1.866122       1.866122         NaN    1321.225775
+
+[11 rows x 16 columns]
+Type value counts:
+ type_id
+0    980532
+3       350
+4        11
+Name: count, dtype: int64
+Day of week value counts:
+ day_of_week_id
+1    166875
+2    166012
+3    162866
+0    152453
+4    148781
+5     93707
+6     90199
+Name: count, dtype: int64
+Domain value counts:
+ domain_id
+0       438526
+1409     32148
+2110     23993
+3730     23752
+2404     14216
+         ...  
+792         11
+2017        11
+2423        10
+843         10
+431          7
+Name: count, Length: 3758, dtype: int64
+Score stats:
+ count    980893.000000
+mean         13.941847
+std          57.867123
+min           0.000000
+25%           1.000000
+50%           2.000000
+75%           4.000000
+max        3636.000000
+Name: score, dtype: float64
+Karma stats:
+ count    980893.000000
+mean      13574.491328
+std       31996.438790
+min        -247.000000
+25%          41.000000
+50%        1121.000000
+75%        8732.000000
+max      394659.000000
+Name: karma, dtype: float64
+Descendants stats:
+ count    980893.000000
+mean          6.830663
+std          36.015330
+min          -1.000000
+25%           0.000000
+50%           0.000000
+75%           1.000000
+max        4576.000000
+Name: descendants, dtype: float64
+Hour of day stats:
+ count    980893.000000
+mean         13.266560
+std           6.475806
+min           0.000000
+25%           9.000000
+50%          15.000000
+75%          18.000000
+max          23.000000
+Name: hour_of_day, dtype: float64
+Title length stats:
+ count    980893.000000
+mean          7.729384
+std           3.089158
+min           0.000000
+25%           5.000000
+50%           8.000000
+75%          10.000000
+max          29.000000
+Name: title, dtype: float64
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ duckdb
+DuckDB v1.3.0 (Ossivalis) 71c5c07cdd
+Enter ".help" for usage hints.
+Connected to a transient in-memory database.
+Use ".open FILENAME" to reopen on a persistent database.
+D .exit
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ duckdb
+DuckDB v1.3.0 (Ossivalis) 71c5c07cdd
+Enter ".help" for usage hints.
+Connected to a transient in-memory database.
+Use ".open FILENAME" to reopen on a persistent database.
+D PRAGMA disable_progress_bar;
+postgresql/.data/hn_posts_train_processed.parquet';┌─────────┐
+│ Success │
+│ boolean │
+├─────────┤
+│ 0 rows  │
+└─────────┘
+D SET parquet_file='../postgresql/.data/hn_posts_train_processed.parquet';
+Catalog Error:
+unrecognized configuration parameter "parquet_file"
+
+Did you mean: "parquet_metadata_cache"
+D select * from '../postgresql/.data/hn_posts_train_processed.parquet' limit 10;
+┌──────────┬──────────────────────┬───────┬───────────────┬───┬─────────────┬────────────────┬──────────────────────┬───────────┐
+│ item_id  │        title         │ score │    author     │ … │ day_of_week │ day_of_week_id │        domain        │ domain_id │
+│  int64   │       varchar        │ int64 │    varchar    │   │    int64    │     int64      │       varchar        │   int64   │
+├──────────┼──────────────────────┼───────┼───────────────┼───┼─────────────┼────────────────┼──────────────────────┼───────────┤
+│ 14539373 │ Xbox One X: Everyt…  │     1 │ shawndumas    │ … │           0 │              0 │ arstechnica.com      │       184 │
+│  1180306 │ What is Ovarian Ca…  │     1 │ fatimaseo     │ … │           2 │              2 │ cancerin.com         │         0 │
+│ 22995788 │ Low-cost Circuit F…  │     3 │ vaibhav1312   │ … │           0 │              0 │ medium.com           │      2110 │
+│  5786393 │ Technologists Need…  │     1 │ martyzwilling │ … │           2 │              2 │ blog.startupprofes…  │       473 │
+│ 13008423 │ AppleScript, the p…  │    94 │ davidbarker   │ … │           0 │              0 │ macworld.com         │      2021 │
+│ 18282920 │ Almost 9 in 10 And…  │     3 │ tomgp         │ … │           1 │              1 │ ig.ft.com            │         0 │
+│  1008563 │ The evil behind a …  │     4 │ michaeljung   │ … │           0 │              0 │ houseofhackers.nin…  │         0 │
+│ 17157710 │ Pythagoras on the …  │     1 │ nns           │ … │           4 │              4 │ brainpickings.org    │       577 │
+│ 39706647 │ A remote key-loggi…  │     3 │ feyman_r      │ … │           3 │              3 │ cdn.arstechnica.net  │         0 │
+│ 22456291 │ Raspberry Pi 4 Fir…  │     7 │ tosh          │ … │           6 │              6 │ hackster.io          │      1517 │
+├──────────┴──────────────────────┴───────┴───────────────┴───┴─────────────┴────────────────┴──────────────────────┴───────────┤
+│ 10 rows                                                                                                  16 columns (8 shown) │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+D select count(*) from '../postgresql/.data/hn_posts_train_processed.parquet'
+  ;
+┌────────────────┐
+│  count_star()  │
+│     int64      │
+├────────────────┤
+│    3923571     │
+│ (3.92 million) │
+└────────────────┘
+D SELECT from '../postgresql/.data/hn_posts_train_processed.parquet';
+Parser Error:
+SELECT clause without selection list
+D   COUNT(*) AS n,
+    AVG(score) AS avg_score,
+    MIN(score) AS min_score,
+    MAX(score) AS max_score,
+    STDDEV(score) AS std_score,
+    AVG(karma) AS avg_karma,
+    AVG(descendants) AS avg_descendants
+  
+D SELECT clause without selection listfrom '../postgresql/.data/hn_posts_train_processed.parquet';
+Parser Error:
+syntax error at or near "without"
+
+LINE 1: SELECT clause without selection listfrom '../postgresql/.data/hn_posts_tr...
+                      ^
+D SELECT
+    COUNT(*) AS n,
+    AVG(score) AS avg_score,
+    MIN(score) AS min_score,
+    MAX(score) AS max_score,
+    STDDEV(score) AS std_score,
+    AVG(karma) AS avg_karma,
+    AVG(descendants) AS avg_descendants
+  FROM read_parquet( '../postgresql/.data/hn_posts_train_processed.parquet');
+┌─────────┬────────────────────┬───────────┬───────────┬───────────────────┬────────────────────┬───────────────────┐
+│    n    │     avg_score      │ min_score │ max_score │     std_score     │     avg_karma      │  avg_descendants  │
+│  int64  │       double       │   int64   │   int64   │      double       │       double       │      double       │
+├─────────┼────────────────────┼───────────┼───────────┼───────────────────┼────────────────────┼───────────────────┤
+│ 3923571 │ 14.077740915100046 │    -1     │   6015    │ 59.60116339312505 │ 13511.033016351686 │ 6.877916061669331 │
+└─────────┴────────────────────┴───────────┴───────────┴───────────────────┴────────────────────┴───────────────────┘
+D .exit
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ git pull
+remote: Enumerating objects: 7, done.
+remote: Counting objects: 100% (7/7), done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 5 (delta 1), reused 5 (delta 1), pack-reused 0 (from 0)
+Unpacking objects: 100% (5/5), 5.42 KiB | 5.42 MiB/s, done.
+From https://github.com/CovertSheeke/MLX8_W1_dropout-disco
+   ed2c224..7b043c0  main       -> origin/main
+Updating ed2c224..7b043c0
+Fast-forward
+ Charles/duckdb-processed-parquet.sql        |  74 +++++++++++++++++++++
+ Charles/feature-fusion-wo-karma-comments.py | 331 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 405 insertions(+)
+ create mode 100644 Charles/duckdb-processed-parquet.sql
+ create mode 100644 Charles/feature-fusion-wo-karma-comments.py
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion-wo-karma-comments.py --train
+Loading word2vec checkpoint from: ../text8/.data/text8_compare.pt
+wandb: Currently logged in as: charles-cai to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /home/cryptocharlie/MLX8_W1_dropout-disco/Charles/wandb/run-20250612_140534-teykhly7
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run feature-fusion_202506121405
+wandb: ⭐️ View project at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: 🚀 View run at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/teykhly7
+Loading training dataset from: ../postgresql/.data/hn_posts_train_processed.parquet
+Max type_id: 4
+Max day_of_week_id: 6
+Max domain_id: 3757
+Num unique type_id: 3
+Num unique day_of_week_id: 7
+Num unique domain_id: 3758
+Starting training for 5 epochs...
+Training: 100%|████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:12<00:00,  4.20s/it]
+Epoch 1 - Train Loss: 3652.6010
+Training: 100%|████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:24<00:00,  4.40s/it]
+Epoch 2 - Train Loss: 3558.2126
+Training: 100%|████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:09<00:00,  4.15s/it]
+Epoch 3 - Train Loss: 3555.5042
+Training: 100%|████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:01<00:00,  4.03s/it]
+Epoch 4 - Train Loss: 3553.4014
+Training: 100%|████████████████████████████████████████████████████████████████████████████████████████████████| 60/60 [04:20<00:00,  4.34s/it]
+Epoch 5 - Train Loss: 3550.7409
+Fusion model saved to ../postgresql/.data/fusion_model.pt
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb: batch_loss ▃▆▃▄▅▄█▄▄▄▄▄▄▄▂▂▃▄▂▇▇▅▁▁▅▁█▅▂▃▃▆▄▃▂▁▃▄▄▄
+wandb:      epoch ▁▃▅▆█
+wandb: train_loss █▂▁▁▁
+wandb: 
+wandb: Run summary:
+wandb: batch_loss 4081.79126
+wandb:      epoch 5
+wandb: train_loss 3550.74094
+wandb: 
+wandb: 🚀 View run feature-fusion_202506121405 at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/teykhly7
+wandb: ⭐️ View project at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20250612_140534-teykhly7/logs
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ python feature-fusion-wo-karma-comments.py --test
+Loading word2vec checkpoint from: ../text8/.data/text8_compare.pt
+wandb: Currently logged in as: charles-cai to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /home/cryptocharlie/MLX8_W1_dropout-disco/Charles/wandb/run-20250612_143348-rkfg6a8u
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run feature-fusion_202506121433
+wandb: ⭐️ View project at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: 🚀 View run at https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/rkfg6a8u
+Loading test dataset from: ../postgresql/.data/hn_posts_test_processed.parquet
+Max type_id: 4
+Max day_of_week_id: 6
+Max domain_id: 3757
+Num unique type_id: 3
+Num unique day_of_week_id: 7
+Num unique domain_id: 3758
+Loaded fusion model checkpoint.
+Evaluating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████| 15/15 [00:54<00:00,  3.65s/it]
+Test loss: 3345.4577
+Test r2: 0.0009
+Test mae: 20.4184
+Test rmse: 57.8399
+Test mape: 396488.1250
+Test medae: 12.2094
+Test explained_variance: 0.0009
+Test max_error: 3620.1199
+Test pearson: 0.0315
+Test spearman: 0.0795
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb: test_explained_variance ▁
+wandb:               test_loss ▁
+wandb:                test_mae ▁
+wandb:               test_mape ▁
+wandb:          test_max_error ▁
+wandb:              test_medae ▁
+wandb:            test_pearson ▁
+wandb:                 test_r2 ▁
+wandb:               test_rmse ▁
+wandb:           test_spearman ▁
+wandb: 
+wandb: Run summary:
+wandb: test_explained_variance 0.00094
+wandb:               test_loss 3345.45774
+wandb:                test_mae 20.41836
+wandb:               test_mape 396488.125
+wandb:          test_max_error 3620.11987
+wandb:              test_medae 12.20937
+wandb:            test_pearson 0.0315
+wandb:                 test_r2 0.00094
+wandb:               test_rmse 57.83994
+wandb:           test_spearman 0.07946
+wandb: 
+wandb: 🚀 View run feature-fusion_202506121433 at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes/runs/rkfg6a8u
+wandb: ⭐️ View project at: https://wandb.ai/charles-cai/mlx8-week1-predict-hn-upvotes
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20250612_143348-rkfg6a8u/logs
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dro
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dro
+cryptocharlie@computeinstance-e00xyf8mmmjsr6d5k1:~/MLX8_W1_dropout-disco/Charles$ Connection to 195.242.10.25 closed by remote host.
+Connection to 195.242.10.25 closed.
+charles:~$ 

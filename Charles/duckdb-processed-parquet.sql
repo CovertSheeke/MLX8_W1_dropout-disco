@@ -1,3 +1,8 @@
+-- Need to fix: install duckdb cli
+-- > duckdb
+-- > (the above works)
+SELECT * FROM '../postgresql/.data/hn_posts_train_processed.parquet' LIMIT 10;
+
 -- Set path to the processed parquet file
 PRAGMA disable_progress_bar;
 SET parquet_file='../postgresql/.data/hn_posts_train_processed.parquet';
