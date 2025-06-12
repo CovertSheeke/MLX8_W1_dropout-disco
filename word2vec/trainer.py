@@ -87,7 +87,7 @@ class Word2VecTrainer:
             self._eval_model()  # evaluate model after validation
 
             # log to console and wandb
-            logger.debug(
+            logger.info(
                 "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
                     epoch,
                     self.epochs,

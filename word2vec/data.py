@@ -69,7 +69,7 @@ def build_cbow_dataset(
             parquet_path = os.path.join(DATA_DIR, TITLES_FILE)
         else:
             parquet_path = os.path.join(DATA_DIR, TRAIN_PROCESSED_FILENAME)
-        logger.debug(f"Loading data from {parquet_path}...")
+        logger.info(f"Loading data from {parquet_path}...")
         hn_posts = pd.read_parquet(parquet_path)
         # show some basic info about the data we pulled from parquet
         logger.info(
