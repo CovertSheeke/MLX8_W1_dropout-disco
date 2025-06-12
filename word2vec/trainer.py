@@ -121,7 +121,6 @@ class Word2VecTrainer:
         self.model.train()
         running_loss = []
 
-        # TODO: make sure this logic (and val) reflect final dataloader setup
         for i, batch_data in tqdm(enumerate(self.train_dl, 1)):
             inputs = batch_data[0].to(self.device)
             labels = batch_data[1].to(self.device)
