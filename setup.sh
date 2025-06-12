@@ -3,7 +3,7 @@
 apt update
 # ensure we have all the utils we need
 apt install -y vim rsync git nvtop htop tmux curl
-apt upgrade -y
+# apt upgrade -y
 # install uv and sync
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env

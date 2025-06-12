@@ -80,6 +80,8 @@ class Word2VecTrainer:
         self.model.to(self.device)
 
     def train(self):
+        # save vocab first thing, in case we error out and need to use checkpoints
+        self.save_vocab()
         for epoch in range(1, self.epochs + 1):
             self._train_epoch()
             self._validate_epoch()
@@ -114,7 +116,6 @@ class Word2VecTrainer:
         # save final model and loss history
         self.save_model()
         self.save_loss()
-        self.save_vocab()
 
     def _train_epoch(self):
         self.model.train()

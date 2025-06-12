@@ -67,7 +67,7 @@ def train() -> None:
         project=WANDB_PROJECT,
         config=CONFIG,
     )
-    logger.info(f"WandB run {run.id} initialised with config: {run.config}")
+    logger.info(f"WandB run {run.name} initialised with config: {run.config}")
 
     if not (run.config.train_proportion + run.config.val_proportion) < 1.0:
         raise ValueError(

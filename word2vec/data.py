@@ -83,6 +83,7 @@ def build_cbow_dataset(
     # ensure text8 corpus is downloaded to data dir
     text8_path = get_text8(cache_dir=DATA_DIR)
 
+    # TODO: consider keeping titles separate, rather than concatening them all and losing boundaries
     # build the big string
     with open(text8_path, "r", encoding="utf-8") as f:
         corpus_txt = f.read() + " " + hn_titles
