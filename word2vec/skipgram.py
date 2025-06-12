@@ -3,8 +3,8 @@ from sklearn.model_selection import train_test_split
 import torch
 import logging
 import os
-from word2vec.data import get_text8
-from word2vec.tokeniser import build_vocab, get_tokens_as_indices, tokenise
+from data import get_text8
+from tokeniser import build_vocab, get_tokens_as_indices, tokenise
 import wandb
 
 logger = logging.getLogger(__name__)
