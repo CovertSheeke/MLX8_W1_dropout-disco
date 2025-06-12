@@ -130,13 +130,16 @@ class FusionModel(nn.Module):
         
     def forward(self, title_tokens, lengths, type_ids, day_ids, domain_ids, hours, karmas, descendants):
         # title_tokens: (batch, seq_len)
+        # Get word2vec embeddings for each token in the title
         emb_tokens = self.w2v_emb(title_tokens)  # (B, L, EMBEDDING_DIM)
-        # Create mask where token id != 0 (assumed padding token)
+        # Mask out padding tokens (assumed to be 0)
         mask = (title_tokens != 0).unsqueeze(-1).float()  # (B, L, 1)
+        # Sum embeddings for non-padding tokens
         summed = torch.sum(emb_tokens * mask, dim=1)  # (B, EMBEDDING_DIM)
-        # Avoid division by zero
+        # Average by non-padding token count (lengths)
         lengths = lengths.unsqueeze(1).clamp(min=1)
         avg_title_emb = summed / lengths  # (B, EMBEDDING_DIM)
+        # avg_title_emb is the fixed-size title vector
         
         # Categorical features embeddings
         type_feature = self.type_emb(type_ids)
@@ -218,7 +221,7 @@ def main():
     # Here we assume that type_id, day_of_week_id, domain_id are 0-indexed.
     num_types = int(os.getenv("NUM_TYPES", "10"))
     num_days = int(os.getenv("NUM_DAYS", "7"))
-    num_domains = int(os.getenv("NUM_DOMAINS", "1000"))
+    num_domains = int(os.getenv("NUM_DOMAINS", "4096"))
     
     model = FusionModel(w2v_weight, num_words, num_types, num_days, num_domains)
     model.to(device)

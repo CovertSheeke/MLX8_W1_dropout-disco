@@ -23,15 +23,15 @@ TEXT8_URL = os.getenv("TEXT8_URL", "http://mattmahoney.net/dc/text8.zip")
 TEXT8_ZIP_PATH = os.getenv("TEXT8_ZIP_PATH", ".data/text8.zip")
 TEXT8_RAW_PATH = os.getenv("TEXT8_RAW_PATH", ".data/text8")
 MIN_COUNT = int(os.getenv("MIN_COUNT", "5"))
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "100"))
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "8192"))
-EPOCHS = int(os.getenv("EPOCHS", "3"))
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "200"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "65536"))
+EPOCHS = int(os.getenv("EPOCHS", "10"))
 SGNS_MODEL_NAME = os.getenv("SGNS_MODEL_NAME", "sgns")
 CBOW_MODEL_NAME = os.getenv("CBOW_MODEL_NAME", "cbow")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT", "text8-word2vec")
 WANDB_RUN_NAME = os.getenv("WANDB_RUN_NAME", "text8-sgns-cbow")
 OUTPUT_PATH = os.getenv("OUTPUT_PATH", ".data/text8_compare.pt")
-LEARNING_RATE = float(os.getenv("LEARNING_RATE", "0.001"))
+LEARNING_RATE = float(os.getenv("LEARNING_RATE", "0.0001"))
 NUMBER_WORKERS = int(os.getenv("NUMBER_WORKERS", "8"))
 SHUFFLE = os.getenv("SHUFFLE", "True").lower() in ("1", "true", "yes")
 PIN_MEMORY = os.getenv("PIN_MEMORY", "True").lower() in ("1", "true", "yes")
@@ -179,7 +179,7 @@ class CBOW(nn.Module):
         return loss
 
 # Training utility
-def train(model, dataloader, epochs, device, wandb_run=None, model_name=""):
+def train(model, dataloader, epochs, device, wandb_run=None, model_name="", idx2word=None, word2idx=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     model.to(device)
     model.train()
@@ -226,6 +226,13 @@ def train(model, dataloader, epochs, device, wandb_run=None, model_name=""):
             total_neg_score += avg_neg
             total_batches += 1
             if wandb_run is not None:
+                # Log embedding norms for monitoring overfitting
+                if hasattr(model, "target_emb"):
+                    emb_norm = model.target_emb.weight.norm(dim=1).mean().item()
+                    wandb_run.log({f"{model_name}_target_emb_norm_mean": emb_norm, "epoch": epoch})
+                if hasattr(model, "context_emb"):
+                    emb_norm = model.context_emb.weight.norm(dim=1).mean().item()
+                    wandb_run.log({f"{model_name}_context_emb_norm_mean": emb_norm, "epoch": epoch})
                 wandb_run.log({
                     f"{model_name}_batch_loss": loss.item(),
                     f"{model_name}_batch_pos_score": avg_pos,
@@ -237,12 +244,36 @@ def train(model, dataloader, epochs, device, wandb_run=None, model_name=""):
         avg_neg_score = total_neg_score/total_batches
         print(f"Epoch {epoch} — Loss: {avg_loss:.4f} — Pos: {avg_pos_score:.4f} — Neg: {avg_neg_score:.4f}")
         if wandb_run is not None:
+            # Log epoch-level embedding norms
+            if hasattr(model, "target_emb"):
+                emb_norm = model.target_emb.weight.norm(dim=1).mean().item()
+                wandb_run.log({f"{model_name}_target_emb_norm_mean_epoch": emb_norm, "epoch": epoch})
+            if hasattr(model, "context_emb"):
+                emb_norm = model.context_emb.weight.norm(dim=1).mean().item()
+                wandb_run.log({f"{model_name}_context_emb_norm_mean_epoch": emb_norm, "epoch": epoch})
             wandb_run.log({
                 f"{model_name}_loss": avg_loss,
                 f"{model_name}_pos_score": avg_pos_score,
                 f"{model_name}_neg_score": avg_neg_score,
                 "epoch": epoch
             })
+            # --- Analogy metric: king-queen ≈ man-woman ---
+            if idx2word is not None and word2idx is not None:
+                # Use the correct embedding matrix for each model
+                if model_name == "sgns":
+                    emb_matrix = model.target_emb.weight.data
+                elif model_name == "cbow":
+                    emb_matrix = model.context_emb.weight.data
+                else:
+                    emb_matrix = None
+                if emb_matrix is not None:
+                    try:
+                        analogy_sim = analogy_similarity(
+                            emb_matrix, "king", "queen", "man", "woman", word2idx
+                        )
+                        wandb_run.log({f"{model_name}_analogy_king_queen_man_woman": analogy_sim, "epoch": epoch})
+                    except Exception:
+                        pass
 
 def most_similar(emb_matrix, word, word2idx, idx2word, k=TOP_K):
     sims = F.cosine_similarity(
@@ -303,6 +334,13 @@ def word2vec_tests(model_path):
     # Calculate vector length for king - man + woman - queen
     analogy_vector_length(sgns_emb, 'king', 'man', 'woman', 'queen', word2idx)
     analogy_vector_length(cbow_emb, 'king', 'man', 'woman', 'queen', word2idx)
+
+def analogy_similarity(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
+    # Compute cosine similarity between (a-b) and (c-d)
+    vec1 = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]]
+    vec2 = emb_matrix[word2idx[word_c]] - emb_matrix[word2idx[word_d]]
+    sim = F.cosine_similarity(vec1.unsqueeze(0), vec2.unsqueeze(0)).item()
+    return sim
 
 def main():
     parser = argparse.ArgumentParser(
@@ -378,7 +416,11 @@ def main():
         )
         sgns_model = SGNS(len(idx2word), emb_size=EMBEDDING_DIM)
         print("Training SGNS...")
-        train(sgns_model, sgns_loader, epochs=EPOCHS, device=device, wandb_run=wandb, model_name=SGNS_MODEL_NAME)
+        train(
+            sgns_model, sgns_loader, epochs=EPOCHS, device=device,
+            wandb_run=wandb, model_name=SGNS_MODEL_NAME,
+            idx2word=idx2word, word2idx=word2idx
+        )
 
         # CBOW
         cbow_ds = CBOWDataset(tokens, word2idx, probs)
@@ -397,7 +439,11 @@ def main():
         )
         cbow_model = CBOW(len(idx2word), emb_size=EMBEDDING_DIM)
         print("Training CBOW...")
-        train(cbow_model, cbow_loader, epochs=EPOCHS, device=device, wandb_run=wandb, model_name=CBOW_MODEL_NAME)
+        train(
+            cbow_model, cbow_loader, epochs=EPOCHS, device=device,
+            wandb_run=wandb, model_name=CBOW_MODEL_NAME,
+            idx2word=idx2word, word2idx=word2idx
+        )
 
         print("Training complete. Saving models and embeddings...")
         torch.save({

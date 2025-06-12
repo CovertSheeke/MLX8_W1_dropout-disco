@@ -15,11 +15,16 @@ This folder contains an implementation of **Word2Vec** (both Skip-Gram with Nega
 ## Usage
 
 1. **Install dependencies**:
+   Inside workfolder root, where `pyproject.toml` file is, run:
    ```
-   pip install -r requirements.txt
+   uv sync
+   cd text8
    ```
+   
+   ** Make sure you are in `text8` folder.
 
 2. **Download the dataset**:
+ 
    ```
    python word2vec-text8.py --download
    ```
@@ -47,9 +52,9 @@ You can create a `.env` file in this directory to override defaults. Example:
 
 ```
 TEXT8_URL=http://mattmahoney.net/dc/text8.zip
-EMBEDDING_DIM=100
-BATCH_SIZE=8192
-EPOCHS=3
+EMBEDDING_DIM=200
+BATCH_SIZE=65536
+EPOCHS=5
 MIN_COUNT=5
 LEARNING_RATE=0.001
 WANDB_PROJECT=text8-word2vec
