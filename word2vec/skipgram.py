@@ -53,6 +53,7 @@ def generate_skipgram_pairs(corpus, context_size):
     corpus = np.array(corpus)
     pairs = []
     for offset in range(-context_size, context_size + 1):
+        logger.info(f"Processing offset: {offset}")
         if offset == 0:
             continue
         logger.debug(f"Processing offset: {offset}")
