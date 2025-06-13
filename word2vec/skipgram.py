@@ -37,7 +37,7 @@ config = {
     "embedding_dim": 100,
     "learning_rate": 0.01,
     "context_size": 1,
-    "min_freq": 0,
+    "min_freq": 3,
     "subsampling_threshold": 1e-4,
     "val_split": 0.1,
     "test_split": 0.1,
@@ -56,26 +56,39 @@ def generate_skipgram_pairs(corpus, context_size):
 
 
 def build_sgram_dataset(context_size: int = None, txt_8_path: str = "data/text8.txt") -> tuple[list[tuple[int, int]], dict]:
+    logger.info("Starting build_sgram_dataset")
     if context_size is None:
         context_size = config["context_size"]
-    # Read the text8 file
+        logger.info(f"context_size not provided, using default from config: {context_size}")
+    else:
+        logger.info(f"Using provided context_size: {context_size}")
+
+    logger.info(f"Opening text8 file at path: {txt_8_path}")
     with open(txt_8_path, "r", encoding="utf-8") as f:
         text = f.read()
+    logger.info(f"Read text8 file, length: {len(text)} characters")
 
+    logger.info("Tokenising text")
     text_tokens = tokenise(text)
+    logger.info(f"Tokenised text into {len(text_tokens)} tokens")
 
-    # Build the vocabulary
+    logger.info("Building vocabulary")
     vocab = build_vocab(
         text_tokens,
         min_freq=config["min_freq"],
         subsampling_threshold=config["subsampling_threshold"]
     )
-    
-    text_token_inds = get_tokens_as_indices(text_tokens, vocab)
+    logger.info(f"Built vocabulary of size: {len(vocab)}")
 
-    # Generate skip-gram pairs
+    logger.info("Converting tokens to indices")
+    text_token_inds = get_tokens_as_indices(text_tokens, vocab)
+    logger.info(f"Converted tokens to indices, total indices: {len(text_token_inds)}")
+
+    logger.info("Generating skip-gram pairs")
     skipgram_pairs = generate_skipgram_pairs(text_token_inds, context_size)
-    
+    logger.info(f"Generated {len(skipgram_pairs)} skip-gram pairs")
+
+    logger.info("Finished build_sgram_dataset")
     return skipgram_pairs, vocab
 
 logger = logging.getLogger(__name__)
