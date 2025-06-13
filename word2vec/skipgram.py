@@ -313,6 +313,11 @@ logger.info(f"Using text8 dataset at: {txt8_path}")
 ds_pairs, ds_vocab = build_sgram_dataset(context_size=config["context_size"], txt_8_path=txt8_path)
 logger.info(f"Built skip-gram dataset with {len(ds_pairs)} pairs and vocabulary size {len(ds_vocab)}")
 
+logger.info(f"ds_vocab sample entries (showing up to 5):")
+for i, (k, v) in enumerate(list(ds_vocab.items())[:5]):
+    logger.info(f"  Entry {i}: key={repr(k)} (type={type(k)}), value={repr(v)} (type={type(v)})")
+
+
 print("gets to here")
 # Dummy data for ds_pairs for testing
 # Let's assume a vocab of 5 words (indices 0-4)
@@ -330,14 +335,7 @@ print("gets to here")
 # ]
 # ds_vocab = {str(i): i for i in range(5)}
 train_pairs, val_pairs, test_pairs = split_dataset(ds_pairs)
-logger.info(f"Split dataset into train ({len(train_pairs)}), val ({len(val_pairs)}), test ({len(test_pairs)}) pairs")
-logger.info(f"Train pairs: {train_pairs[:5]}... (showing first 5 pairs)")
-logger.info(f"Train pairs as vocabulary indices: {[(ds_vocab[(center)], ds_vocab[(context)]) for center, context in train_pairs[:5]]}... (showing first 5 pairs as indices)")
-logger.info(f"Val pairs: {val_pairs[:5]}... (showing first 5 pairs)")
-logger.info(f"Val pairs as vocabulary indices: {[(ds_vocab[(center)], ds_vocab[(context)]) for center, context in val_pairs[:5]]}... (showing first 5 pairs as indices)")
-logger.info(f"Test pairs: {test_pairs[:5]}... (showing first 5 pairs)")
-logger.info(f"Test pairs as vocabulary indices: {[(ds_vocab[(center)], ds_vocab[(context)]) for center, context in test_pairs[:5]]}... (showing first 5 pairs as indices)")
-logger
+
 print("gets to here too")
 # Example usage
 model = orchestrate_training(train_pairs, val_pairs, test_pairs, len(ds_vocab))
