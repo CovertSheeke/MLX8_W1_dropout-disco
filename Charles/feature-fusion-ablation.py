@@ -49,47 +49,45 @@ def simple_tokenize(text):
 # (title_token_ids, type_id, day_of_week_id, domain_id, hour_of_day, karma, descendants, score, seq_length)
 class FusionDataset(Dataset):
     def __init__(self, parquet_path, word2idx):
-        self.df = pd.read_parquet(parquet_path)
-        self.word2idx = word2idx
+        df = pd.read_parquet(parquet_path)
+        unk = word2idx.get('<UNK>', 0)
+        # Precompute all fields in lists/arrays
+        self.token_ids_list = [
+            torch.tensor([word2idx.get(t, unk) for t in simple_tokenize(title)], dtype=torch.long)
+            for title in df['title']
+        ]
+        self.type_ids = torch.tensor(df['type_id'].astype(int).values, dtype=torch.long)
+        self.day_ids = torch.tensor(df['day_of_week_id'].astype(int).values, dtype=torch.long)
+        self.domain_ids = torch.tensor(df['domain_id'].astype(int).values, dtype=torch.long)
+        self.hours = torch.tensor(df['hour_of_day'].astype(float).values, dtype=torch.float)
+        self.karmas = torch.tensor(df['karma'].astype(float).values, dtype=torch.float)
+        self.descendants = torch.tensor(df['descendants'].astype(float).values, dtype=torch.float)
+        self.scores = torch.tensor(df['score'].astype(float).values, dtype=torch.float)
         # Print max values for debugging
-        print("Max type_id:", self.df['type_id'].max())
-        print("Max day_of_week_id:", self.df['day_of_week_id'].max())
-        print("Max domain_id:", self.df['domain_id'].max())
-        print("Num unique type_id:", self.df['type_id'].nunique())
-        print("Num unique day_of_week_id:", self.df['day_of_week_id'].nunique())
-        print("Num unique domain_id:", self.df['domain_id'].nunique())
+        print("Max type_id:", self.type_ids.max())
+        print("Max day_of_week_id:", self.day_ids.max())
+        print("Max domain_id:", self.domain_ids.max())
+        print("Num unique type_id:", self.type_ids.unique().size(0))
+        print("Num unique day_of_week_id:", self.day_ids.unique().size(0))
+        print("Num unique domain_id:", self.domain_ids.unique().size(0))
         
     def __len__(self):
-        return len(self.df)
-    
+        return len(self.token_ids_list)
+
     def __getitem__(self, idx):
-        row = self.df.iloc[idx]
-        title = row['title']
-        tokens = simple_tokenize(title)
-        # Convert tokens to ids (using 0 if not found)
-        token_ids = [self.word2idx.get(token, self.word2idx.get('<UNK>', 0)) for token in tokens]
-        seq_length = len(token_ids)
-        # Extra features
-        type_id = int(row['type_id'])
-        day_id = int(row['day_of_week_id'])
-        domain_id = int(row['domain_id'])
-        # Add assertions to catch out-of-bounds indices
-        assert type_id >= 0, f"type_id {type_id} < 0"
-        assert day_id >= 0, f"day_id {day_id} < 0"
-        assert domain_id >= 0, f"domain_id {domain_id} < 0"
-        hour = float(row['hour_of_day'])
-        karma = float(row['karma'])
-        descendants = float(row['descendants'])
-        score = float(row['score'])
-        return (torch.tensor(token_ids, dtype=torch.long),
-                type_id,
-                day_id,
-                domain_id,
-                hour,
-                karma,
-                descendants,
-                score,
-                seq_length)
+        token_ids = self.token_ids_list[idx]
+        seq_length = token_ids.size(0)
+        return (
+            token_ids,
+            self.type_ids[idx],
+            self.day_ids[idx],
+            self.domain_ids[idx],
+            self.hours[idx],
+            self.karmas[idx],
+            self.descendants[idx],
+            self.scores[idx],
+            seq_length
+        )
 
 # Collate function to pad title token sequences
 def fusion_collate_fn(batch):
@@ -482,5 +480,4 @@ def main():
     wandb.finish()
 
 if __name__ == "__main__":
-    import numpy as np  # Needed for MAPE
     main()

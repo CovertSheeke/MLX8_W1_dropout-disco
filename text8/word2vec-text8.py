@@ -386,7 +386,10 @@ def word2vec_tests(model_path):
     df_cbow = evaluate_similarity_dataframe(cbow_emb, "cbow", word2idx, idx2word, anchors, topk=10)
     df_all = pd.concat([df_sgns, df_cbow], ignore_index=True)
     print("\nEvaluation DataFrame (each row = one closest word result):")
-    print(df_all)
+    
+    # Display all records without truncation
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
+        print(df_all)
 
 def analogy_similarity(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
     # Check if all words exist in vocabulary
