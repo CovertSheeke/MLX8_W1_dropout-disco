@@ -66,14 +66,14 @@ python Charles/feature-fusion.py --test
 
 | Feature         | Size |
 |-----------------|------|
-| Title (Word2Vec)| 100  |
+| Title (Word2Vec)| 300  |
 | Type            | 8    |
 | Day of Week     | 3    |
 | Domain          | 8    |
 | Hour            | 1    |
 | Karma           | 1    |
 | Descendants     | 1    |
-| **Total**       | 122  |
+| **Total**       | 322  |
 
 ## References
 

@@ -13,6 +13,7 @@ import wandb
 from datetime import datetime
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, median_absolute_error, explained_variance_score, max_error
 from scipy.stats import pearsonr, spearmanr
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -28,6 +29,9 @@ BATCH_SIZE = int(os.getenv("FUSION_BATCH_SIZE", "8192"))
 FUSION_EPOCHS = int(os.getenv("FUSION_EPOCHS", "5"))
 LEARNING_RATE = float(os.getenv("FUSION_LEARNING_RATE", "0.001"))
 EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "200"))  # should match word2vec dims
+
+# Number of workers for DataLoader
+FUSION_NUM_WORKERS = int(os.getenv("FUSION_NUM_WORKERS", "32"))
 
 # Embedding sizes for categorical features
 TYPE_EMB_DIM = int(os.getenv("TYPE_EMB_DIM", "8"))
@@ -442,7 +446,7 @@ def main():
         train_dataset = FusionDataset(TRAIN_FILE, word2idx)
         # Add num_workers and pin_memory for better GPU utilization
         train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, 
-                                 collate_fn=fusion_collate_fn, num_workers=4, 
+                                 collate_fn=fusion_collate_fn, num_workers=FUSION_NUM_WORKERS, 
                                  pin_memory=True if torch.cuda.is_available() else False)
         
         print("Starting training for {} epochs...".format(FUSION_EPOCHS))
@@ -460,7 +464,7 @@ def main():
         test_dataset = FusionDataset(TEST_FILE, word2idx)
         # Add num_workers and pin_memory for better GPU utilization
         test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, 
-                                collate_fn=fusion_collate_fn, num_workers=4,
+                                collate_fn=fusion_collate_fn, num_workers=FUSION_NUM_WORKERS,
                                 pin_memory=True if torch.cuda.is_available() else False)
         
         # Load saved model weights if available
