@@ -156,10 +156,15 @@ class FusionModel(nn.Module):
         output = self.fc(fused)
         return output.squeeze(1)
 
-def load_word2vec_checkpoint(path):
+def load_word2vec_checkpoint(path, embedding_type='sgns'):
     checkpoint = torch.load(path, map_location="cpu")
-    # Use SGNS embedding weight and word2idx mapping
-    weight = checkpoint['sgns_emb']
+    # Use specified embedding type (sgns or cbow)
+    if embedding_type == 'cbow':
+        weight = checkpoint['cbow_emb']
+        print("Using CBOW embeddings")
+    else:
+        weight = checkpoint['sgns_emb']
+        print("Using SGNS embeddings")
     word2idx = checkpoint['word2idx']
     return weight, word2idx
 
@@ -352,7 +357,14 @@ def main():
     # New ablation flags for evaluation
     parser.add_argument("--ablate-karma", action="store_true", help="Evaluation: ablate karma feature")
     parser.add_argument("--ablate-descendants", action="store_true", help="Evaluation: ablate descendants feature")
+    # Embedding type selection
+    embedding_group = parser.add_mutually_exclusive_group()
+    embedding_group.add_argument("--sgns", action="store_true", default=True, help="Use SGNS embeddings (default)")
+    embedding_group.add_argument("--cbow", action="store_true", help="Use CBOW embeddings")
     args = parser.parse_args()
+    
+    # Determine embedding type
+    embedding_type = 'cbow' if args.cbow else 'sgns'
     
     # Print help if no arguments are provided
     if not (args.train or args.test or args.eda or args.ablate_karma or args.ablate_descendants):
@@ -374,9 +386,9 @@ def main():
     print("Using device:", device)
     print_system_info()
     
-    # Load word2vec checkpoint
+    # Load word2vec checkpoint with specified embedding type
     print("Loading word2vec checkpoint from:", WORD2VEC_PATH)
-    w2v_weight, word2idx = load_word2vec_checkpoint(WORD2VEC_PATH)
+    w2v_weight, word2idx = load_word2vec_checkpoint(WORD2VEC_PATH, embedding_type)
     num_words = w2v_weight.size(0)
     
     # For categorical embeddings, set number of unique tokens based on processed data
@@ -411,7 +423,7 @@ def main():
     wandb_project = os.getenv("WANDB_PROJECT", "mlx8-fusion")
     wandb_run_name = os.getenv("WANDB_RUN_NAME", "fusion")
     now_str = datetime.now().strftime("_%Y%m%d%H%M")
-    run_name = wandb_run_name + now_str
+    run_name = wandb_run_name + f"_{embedding_type}" + now_str
     wandb.init(project=wandb_project, name=run_name, config={
         "embedding_dim": EMBEDDING_DIM,
         "batch_size": BATCH_SIZE,
@@ -423,7 +435,8 @@ def main():
         "fc_hidden_size": FC_HIDDEN_SIZE,
         "num_types": num_types,
         "num_days": num_days,
-        "num_domains": num_domains
+        "num_domains": num_domains,
+        "embedding_type": embedding_type
     })
 
     if args.train:
