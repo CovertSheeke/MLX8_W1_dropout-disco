@@ -82,14 +82,18 @@
 ---
 
 ## Model R2 Comparison
+<img width="918" alt="image" src="https://github.com/user-attachments/assets/91096eef-8a3a-443f-804b-df575ee3d3e4" />
+
+
 ---
 
 ## Observations: 
 1. CBOW >> SGNS
-2. With both Karma + Descendants: R2=0.7, MAE=7 Upvotes
-3. Without Karma: R2=0.3, MAE=20 Upvote3s
-4. Without Descendants: R2<0, MAE=10 Upvotes
+2. With both Karma + Descendants: R2=0.7, MAE~=7 Upvotes
+3. Without Karma: R2=0.3, MAE~=20 Upvotes
+4. Without Descendants: R2<0, MAE~=30 Upvotes
 
+TO-DO: given user "created date", last snapshot "karma", we can predict karma given the post date.
 ---
 
 ### ETHAN'S TOP TIP!
