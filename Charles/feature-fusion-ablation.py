@@ -24,10 +24,10 @@ WORD2VEC_PATH = os.getenv("WORD2VEC_PATH", "../text8/.data/text8_compare.pt")
 FUSION_MODEL_SAVE_PATH = os.getenv("FUSION_MODEL_SAVE_PATH", "./.data/fusion_model.pt")
 
 # Hyperparameters (example values; see .env.example for full list)
-BATCH_SIZE = int(os.getenv("FUSION_BATCH_SIZE", "64"))
-FUSION_EPOCHS = int(os.getenv("FUSION_EPOCHS", "10"))
+BATCH_SIZE = int(os.getenv("FUSION_BATCH_SIZE", "8192"))
+FUSION_EPOCHS = int(os.getenv("FUSION_EPOCHS", "5"))
 LEARNING_RATE = float(os.getenv("FUSION_LEARNING_RATE", "0.001"))
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "100"))  # should match word2vec dims
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "200"))  # should match word2vec dims
 
 # Embedding sizes for categorical features
 TYPE_EMB_DIM = int(os.getenv("TYPE_EMB_DIM", "8"))
@@ -132,7 +132,8 @@ class FusionModel(nn.Module):
     def forward(self, title_tokens, lengths, type_ids, day_ids, domain_ids, hours, karmas, descendants):
         # title_tokens: (batch, seq_len)
         # Get word2vec embeddings for each token in the title
-        emb_tokens = self.w2v_emb(title_tokens)  # (B, L, EMBEDDING_DIM)
+        with torch.no_grad():  # Don't compute gradients for frozen embeddings
+            emb_tokens = self.w2v_emb(title_tokens)  # (B, L, EMBEDDING_DIM)
         # Mask out padding tokens (assumed to be 0)
         mask = (title_tokens != 0).unsqueeze(-1).float()  # (B, L, 1)
         # Sum embeddings for non-padding tokens
@@ -147,7 +148,7 @@ class FusionModel(nn.Module):
         day_feature = self.day_emb(day_ids)
         domain_feature = self.domain_emb(domain_ids)
         
-        # Continuous features
+        # Continuous features - ensure proper device placement
         cont_features = torch.stack([hours, karmas, descendants], dim=1)
         
         # Fuse all features
@@ -166,20 +167,69 @@ def train_fusion(model, dataloader, device, optimizer, criterion, wandb_run=None
     model.train()
     running_loss = 0.0
     total_batches = 0
-    for batch in tqdm(dataloader, desc="Training"):
-        title_tokens, type_ids, day_ids, domain_ids, hours, karmas, descendants, scores, lengths = [b.to(device) for b in batch[:-1]] + [batch[-1].to(device)]
+    total_samples = 0
+    
+    # Enable cudnn benchmarking for better performance
+    if device.type == 'cuda':
+        torch.backends.cudnn.benchmark = True
+    
+    # Add progress tracking
+    progress_bar = tqdm(dataloader, desc="Training")
+    
+    for batch_idx, batch in enumerate(progress_bar):
+        # Move data to device more efficiently
+        title_tokens, type_ids, day_ids, domain_ids, hours, karmas, descendants, scores, lengths = batch
+        batch_size = title_tokens.size(0)
+        total_samples += batch_size
+        
+        title_tokens = title_tokens.to(device, non_blocking=True)
+        type_ids = type_ids.to(device, non_blocking=True)
+        day_ids = day_ids.to(device, non_blocking=True)
+        domain_ids = domain_ids.to(device, non_blocking=True)
+        hours = hours.to(device, non_blocking=True)
+        karmas = karmas.to(device, non_blocking=True)
+        descendants = descendants.to(device, non_blocking=True)
+        scores = scores.to(device, non_blocking=True)
+        lengths = lengths.to(device, non_blocking=True)
+        
         optimizer.zero_grad()
         outputs = model(title_tokens, lengths, type_ids, day_ids, domain_ids, hours, karmas, descendants)
         loss = criterion(outputs, scores)
         loss.backward()
+        
+        # Add gradient clipping to prevent exploding gradients
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        
         optimizer.step()
-        running_loss += loss.item() * title_tokens.size(0)
+        
+        batch_loss = loss.item()
+        running_loss += batch_loss * batch_size
         total_batches += 1
-        if wandb_run is not None:
+        
+        # Update progress bar with current loss
+        progress_bar.set_postfix({
+            'Loss': f'{batch_loss:.4f}',
+            'Avg Loss': f'{running_loss/total_samples:.4f}'
+        })
+        
+        # Log every 100 batches for more frequent monitoring
+        if wandb_run is not None and batch_idx % 100 == 0:
             wandb_run.log({
-                "batch_loss": loss.item()
+                "batch_loss": batch_loss,
+                "avg_loss": running_loss / total_samples,
+                "batch_idx": batch_idx
             })
-    return running_loss / len(dataloader.dataset)
+            
+        # Print sample predictions occasionally for debugging
+        if batch_idx % 1000 == 0:
+            with torch.no_grad():
+                sample_preds = outputs[:5].cpu().numpy()
+                sample_targets = scores[:5].cpu().numpy()
+                print(f"\nBatch {batch_idx} - Sample predictions vs targets:")
+                for i in range(min(5, len(sample_preds))):
+                    print(f"  Pred: {sample_preds[i]:.2f}, Target: {sample_targets[i]:.2f}")
+    
+    return running_loss / total_samples
 
 def print_eda(parquet_path):
     df = pd.read_parquet(parquet_path)
@@ -202,9 +252,25 @@ def evaluate_fusion(model, dataloader, device, criterion, ablate_karma=False, ab
     running_loss = 0.0
     all_preds = []
     all_targets = []
+    
+    # Enable cudnn benchmarking for better performance
+    if device.type == 'cuda':
+        torch.backends.cudnn.benchmark = True
+    
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Evaluating"):
-            title_tokens, type_ids, day_ids, domain_ids, hours, karmas, descendants, scores, lengths = [b.to(device) for b in batch[:-1]] + [batch[-1].to(device)]
+            # Move data to device more efficiently
+            title_tokens, type_ids, day_ids, domain_ids, hours, karmas, descendants, scores, lengths = batch
+            title_tokens = title_tokens.to(device, non_blocking=True)
+            type_ids = type_ids.to(device, non_blocking=True)
+            day_ids = day_ids.to(device, non_blocking=True)
+            domain_ids = domain_ids.to(device, non_blocking=True)
+            hours = hours.to(device, non_blocking=True)
+            karmas = karmas.to(device, non_blocking=True)
+            descendants = descendants.to(device, non_blocking=True)
+            scores = scores.to(device, non_blocking=True)
+            lengths = lengths.to(device, non_blocking=True)
+            
             # Ablation: zero out karma and/or descendants if flag enabled
             if ablate_karma:
                 karmas = torch.zeros_like(karmas)
@@ -306,6 +372,7 @@ def main():
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
+    print_system_info()
     
     # Load word2vec checkpoint
     print("Loading word2vec checkpoint from:", WORD2VEC_PATH)
@@ -321,8 +388,24 @@ def main():
     model = FusionModel(w2v_weight, num_words, num_types, num_days, num_domains)
     model.to(device)
     
+    # Print model info to verify it's set up correctly
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total parameters: {total_params:,}")
+    print(f"Trainable parameters: {trainable_params:,}")
+    print(f"Frozen parameters: {total_params - trainable_params:,}")
+    
+    # Check if we have enough trainable parameters
+    if trainable_params == 0:
+        print("WARNING: No trainable parameters found!")
+        sys.exit(1)
+    
     criterion = nn.MSELoss()
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
+    
+    # Print optimizer info
+    print(f"Optimizer learning rate: {LEARNING_RATE}")
+    print(f"Optimizer parameter groups: {len(optimizer.param_groups)}")
     
     # Initialize wandb
     wandb_project = os.getenv("WANDB_PROJECT", "mlx8-fusion")
@@ -346,7 +429,10 @@ def main():
     if args.train:
         print("Loading training dataset from:", TRAIN_FILE)
         train_dataset = FusionDataset(TRAIN_FILE, word2idx)
-        train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fusion_collate_fn)
+        # Add num_workers and pin_memory for better GPU utilization
+        train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, 
+                                 collate_fn=fusion_collate_fn, num_workers=4, 
+                                 pin_memory=True if torch.cuda.is_available() else False)
         
         print("Starting training for {} epochs...".format(FUSION_EPOCHS))
         for epoch in range(1, FUSION_EPOCHS+1):
@@ -361,7 +447,10 @@ def main():
     if args.test:
         print("Loading test dataset from:", TEST_FILE)
         test_dataset = FusionDataset(TEST_FILE, word2idx)
-        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fusion_collate_fn)
+        # Add num_workers and pin_memory for better GPU utilization
+        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, 
+                                collate_fn=fusion_collate_fn, num_workers=4,
+                                pin_memory=True if torch.cuda.is_available() else False)
         
         # Load saved model weights if available
         if os.path.exists(FUSION_MODEL_SAVE_PATH):

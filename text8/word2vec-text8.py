@@ -26,13 +26,14 @@ TEXT8_RAW_PATH = os.getenv("TEXT8_RAW_PATH", ".data/text8")
 MIN_COUNT = int(os.getenv("MIN_COUNT", "5"))
 EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "200"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "65536"))
-EPOCHS = int(os.getenv("EPOCHS", "10"))
+EPOCHS = int(os.getenv("EPOCHS", "5"))
 SGNS_MODEL_NAME = os.getenv("SGNS_MODEL_NAME", "sgns")
 CBOW_MODEL_NAME = os.getenv("CBOW_MODEL_NAME", "cbow")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT", "text8-word2vec")
 WANDB_RUN_NAME = os.getenv("WANDB_RUN_NAME", "text8-sgns-cbow")
 OUTPUT_PATH = os.getenv("OUTPUT_PATH", ".data/text8_compare.pt")
 LEARNING_RATE = float(os.getenv("LEARNING_RATE", "0.0001"))
+SUBSAMPLING_THRESHOLD = float(os.getenv("SUBSAMPLING_THRESHOLD", "1e-5"))
 NUMBER_WORKERS = int(os.getenv("NUMBER_WORKERS", "8"))
 SHUFFLE = os.getenv("SHUFFLE", "True").lower() in ("1", "true", "yes")
 PIN_MEMORY = os.getenv("PIN_MEMORY", "True").lower() in ("1", "true", "yes")
@@ -63,21 +64,6 @@ def download_text8(url=TEXT8_URL, zip_path=TEXT8_ZIP_PATH, raw_path=TEXT8_RAW_PA
 def load_tokens(path):
     with open(path, "r") as f:
         return f.read().split()
-
-    # 3. Build vocab and subsampling
-    min_count = MIN_COUNT
-    print("Loading corpus... this may take a while.")
-    raw_path = download_text8()
-    tokens = load_tokens(raw_path)
-    counter = Counter(tokens)
-    vocab = {w: i for i, (w, c) in enumerate(counter.items()) if c >= min_count}
-    idx2word = list(vocab.keys())
-    word2idx = {w: i for i, w in enumerate(idx2word)}
-    freqs = torch.Tensor([counter[w] for w in idx2word])
-    # subsampling
-    τ = 1e-5 * len(tokens)
-    probs = ((freqs / τ).sqrt() + 1) * (τ / freqs)
-    probs = torch.clamp(probs, max=1.0)
 
 # Dataset for SGNS
 class SGNSDataset(Dataset):
@@ -184,14 +170,27 @@ def train(model, dataloader, epochs, device, wandb_run=None, model_name="", idx2
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     model.to(device)
     model.train()
+    
+    # Enable cudnn benchmarking for better performance
+    if device.type == 'cuda':
+        torch.backends.cudnn.benchmark = True
+    
     for epoch in range(1, epochs+1):
         total_loss = 0
         total_pos_score = 0
         total_neg_score = 0
         total_batches = 0
-        for batch in tqdm(dataloader, desc=f"Epoch {epoch}"):
+        total_samples = 0
+        
+        # Enhanced progress bar with postfix updates
+        progress_bar = tqdm(dataloader, desc=f"Epoch {epoch}")
+        
+        for batch_idx, batch in enumerate(progress_bar):
             optimizer.zero_grad()
-            batch = [b.to(device) for b in batch]
+            batch = [b.to(device, non_blocking=True) for b in batch]
+            batch_size = batch[0].size(0)
+            total_samples += batch_size
+            
             # --- Compute loss and metrics ---
             if model_name == "sgns":
                 targets, contexts, negatives = batch
@@ -220,30 +219,52 @@ def train(model, dataloader, epochs, device, wandb_run=None, model_name="", idx2
                 loss = model(*batch)
                 avg_pos = avg_neg = 0
             # --- End metrics ---
+            
             loss.backward()
+            
+            # Add gradient clipping to prevent exploding gradients
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            
             optimizer.step()
-            total_loss += loss.item()
-            total_pos_score += avg_pos
-            total_neg_score += avg_neg
+            
+            batch_loss = loss.item()
+            total_loss += batch_loss * batch_size
+            total_pos_score += avg_pos * batch_size
+            total_neg_score += avg_neg * batch_size
             total_batches += 1
-            if wandb_run is not None:
+            
+            # Update progress bar with current metrics
+            progress_bar.set_postfix({
+                'Loss': f'{batch_loss:.4f}',
+                'Pos': f'{avg_pos:.4f}',
+                'Neg': f'{avg_neg:.4f}',
+                'Avg Loss': f'{total_loss/total_samples:.4f}'
+            })
+            
+            # Log every 100 batches for more frequent monitoring
+            if wandb_run is not None and batch_idx % 100 == 0:
                 # Log embedding norms for monitoring overfitting
                 if hasattr(model, "target_emb"):
                     emb_norm = model.target_emb.weight.norm(dim=1).mean().item()
-                    wandb_run.log({f"{model_name}_target_emb_norm_mean": emb_norm, "epoch": epoch})
+                    wandb_run.log({f"{model_name}_target_emb_norm_mean": emb_norm, "epoch": epoch, "batch_idx": batch_idx})
                 if hasattr(model, "context_emb"):
                     emb_norm = model.context_emb.weight.norm(dim=1).mean().item()
-                    wandb_run.log({f"{model_name}_context_emb_norm_mean": emb_norm, "epoch": epoch})
+                    wandb_run.log({f"{model_name}_context_emb_norm_mean": emb_norm, "epoch": epoch, "batch_idx": batch_idx})
                 wandb_run.log({
-                    f"{model_name}_batch_loss": loss.item(),
+                    f"{model_name}_batch_loss": batch_loss,
                     f"{model_name}_batch_pos_score": avg_pos,
                     f"{model_name}_batch_neg_score": avg_neg,
-                    "epoch": epoch
+                    f"{model_name}_avg_loss": total_loss/total_samples,
+                    "epoch": epoch,
+                    "batch_idx": batch_idx
                 })
-        avg_loss = total_loss/total_batches
-        avg_pos_score = total_pos_score/total_batches
-        avg_neg_score = total_neg_score/total_batches
+        
+        # Calculate epoch averages
+        avg_loss = total_loss/total_samples
+        avg_pos_score = total_pos_score/total_samples
+        avg_neg_score = total_neg_score/total_samples
         print(f"Epoch {epoch} — Loss: {avg_loss:.4f} — Pos: {avg_pos_score:.4f} — Neg: {avg_neg_score:.4f}")
+        
         if wandb_run is not None:
             # Log epoch-level embedding norms
             if hasattr(model, "target_emb"):
@@ -330,6 +351,11 @@ def word2vec_tests(model_path):
 
     print("SGNS Model Analogy Test:")
     def analogy(emb_matrix, word_a, word_b, word_c, word2idx, idx2word, k=TOP_K):
+        # Check if all words exist in vocabulary
+        for word in [word_a, word_b, word_c]:
+            if word not in word2idx:
+                print(f"Warning: Word '{word}' not found in vocabulary")
+                return []
         vec = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]] + emb_matrix[word2idx[word_c]]
         sims = F.cosine_similarity(vec.unsqueeze(0), emb_matrix)
         vals, idxs = sims.topk(k+3)
@@ -367,11 +393,43 @@ def word2vec_tests(model_path):
     print(df_all)
 
 def analogy_similarity(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
+    # Check if all words exist in vocabulary
+    for word in [word_a, word_b, word_c, word_d]:
+        if word not in word2idx:
+            raise KeyError(f"Word '{word}' not found in vocabulary")
     # Compute cosine similarity between (a-b) and (c-d)
     vec1 = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]]
     vec2 = emb_matrix[word2idx[word_c]] - emb_matrix[word2idx[word_d]]
     sim = F.cosine_similarity(vec1.unsqueeze(0), vec2.unsqueeze(0)).item()
     return sim
+
+def print_system_info():
+    print("=== System Info ===")
+    # CPU info
+    try:
+        import platform
+        import psutil
+        print("Platform:", platform.platform())
+        print("Processor:", platform.processor())
+        print("CPU count (logical):", psutil.cpu_count(logical=True))
+        print("CPU count (physical):", psutil.cpu_count(logical=False))
+        print("Total RAM (GB):", round(psutil.virtual_memory().total / (1024**3), 2))
+    except Exception as e:
+        print("Could not get CPU/memory info:", e)
+    # GPU info
+    if torch.cuda.is_available():
+        try:
+            gpu_idx = torch.cuda.current_device()
+            print("CUDA device count:", torch.cuda.device_count())
+            print("CUDA device name:", torch.cuda.get_device_name(gpu_idx))
+            print("CUDA capability:", torch.cuda.get_device_capability(gpu_idx))
+            print("CUDA memory total (GB):", round(torch.cuda.get_device_properties(gpu_idx).total_memory / (1024**3), 2))
+            print("CUDA memory allocated (GB):", round(torch.cuda.memory_allocated(gpu_idx) / (1024**3), 2))
+            print("CUDA memory reserved (GB):", round(torch.cuda.memory_reserved(gpu_idx) / (1024**3), 2))
+        except Exception as e:
+            print("Could not get CUDA info:", e)
+    else:
+        print("CUDA not available.")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -410,6 +468,10 @@ def main():
         if not text8_exists:
             print(f"Text8 file not found at {TEXT8_RAW_PATH}. Please run with --download first.")
             sys.exit(1)
+        
+        # Add system info printing
+        print_system_info()
+        
         print("Loading corpus... this may take a while.")
         raw_path = TEXT8_RAW_PATH
         tokens = load_tokens(raw_path)
@@ -418,11 +480,11 @@ def main():
         idx2word = list(vocab.keys())
         word2idx = {w: i for i, w in enumerate(idx2word)}
         freqs = torch.Tensor([counter[w] for w in idx2word])
-        # subsampling
-        τ = 1e-5 * len(tokens)
-        probs = ((freqs / τ).sqrt() + 1) * (τ / freqs)
+        # subsampling - use configurable threshold
+        tau = SUBSAMPLING_THRESHOLD * len(tokens)
+        probs = ((freqs / tau).sqrt() + 1) * (tau / freqs)
         probs = torch.clamp(probs, max=1.0)
-
+        
         # Add timestamp to WANDB_RUN_NAME
         now_str = datetime.now().strftime("_%Y%m%d%H%M")
         run_name = WANDB_RUN_NAME + now_str
@@ -431,9 +493,12 @@ def main():
             "embedding_dim": EMBEDDING_DIM,
             "batch_size": BATCH_SIZE,
             "epochs": EPOCHS,
-            "min_count": MIN_COUNT
+            "min_count": MIN_COUNT,
+            "learning_rate": LEARNING_RATE,
+            "subsampling_threshold": SUBSAMPLING_THRESHOLD
         })
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("Using device:", device)
 
         # SGNS
         sgns_ds = SGNSDataset(tokens, word2idx, probs)
@@ -446,6 +511,11 @@ def main():
             pin_memory=PIN_MEMORY
         )
         sgns_model = SGNS(len(idx2word), emb_size=EMBEDDING_DIM)
+        
+        # Print model info
+        total_params = sum(p.numel() for p in sgns_model.parameters())
+        print(f"SGNS model - Total parameters: {total_params:,}")
+        
         print("Training SGNS...")
         train(
             sgns_model, sgns_loader, epochs=EPOCHS, device=device,
@@ -469,6 +539,11 @@ def main():
             )
         )
         cbow_model = CBOW(len(idx2word), emb_size=EMBEDDING_DIM)
+        
+        # Print model info
+        total_params = sum(p.numel() for p in cbow_model.parameters())
+        print(f"CBOW model - Total parameters: {total_params:,}")
+        
         print("Training CBOW...")
         train(
             cbow_model, cbow_loader, epochs=EPOCHS, device=device,
