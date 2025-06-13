@@ -39,7 +39,7 @@ CONFIG = {
     "subsampling_threshold": None,  # set to None to disable freq. subsampling
     "epochs": EPOCHS,
     "batch_size": BATCH_SIZE,  # batch size for training, validation, and test
-    "learning_rate": 1e-3,  # initial lr for Adam (may want to decrease if not using scheduler)
+    "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
     "embedding_dimensions": 300,
     "embedding_max_norm": 1.0,
