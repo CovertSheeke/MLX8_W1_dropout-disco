@@ -264,15 +264,31 @@ def orchestrate_training(
     return model
 
 
-txt8_path = get_text8()
-logger.info(f"Using text8 dataset at: {txt8_path}")
+# txt8_path = get_text8()
+# logger.info(f"Using text8 dataset at: {txt8_path}")
 
-ds_pairs, ds_vocab = build_sgram_dataset(context_size=config["context_size"], txt_8_path=txt8_path)
-logger.info(f"Built skip-gram dataset with {len(ds_pairs)} pairs and vocabulary size {len(ds_vocab)}")
+# ds_pairs, ds_vocab = build_sgram_dataset(context_size=config["context_size"], txt_8_path=txt8_path)
+# logger.info(f"Built skip-gram dataset with {len(ds_pairs)} pairs and vocabulary size {len(ds_vocab)}")
 
 print("gets to here")
+# Dummy data for ds_pairs for testing
+# Let's assume a vocab of 5 words (indices 0-4)
+ds_pairs = [
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 0),
+    (1, 3),
+    (2, 4),
+    (0, 2),
+    (3, 1),
+    (4, 2)
+]
+ds_vocab = {str(i): i for i in range(5)}
 train_pairs, val_pairs, test_pairs = split_dataset(ds_pairs)
+logger.info(f"Split dataset into train ({len(train_pairs)}), val ({len(val_pairs)}), test ({len(test_pairs)}) pairs")
 print("gets to here too")
 # Example usage
 model = orchestrate_training(train_pairs, val_pairs, test_pairs, len(ds_vocab))
-
+logger.info("Training completed successfully")
