@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 # constants (excluding hyperparameters)
 RNG_SEED = 42
-CHECKPOINT_FREQUENCY = 5  # how often to save model weights during training
+CHECKPOINT_FREQUENCY = 3  # how often to save model weights during training
 MODEL_NAME = "word2vec_{}_{}_{}"  # format: architecture, dataset, wandb run
 DEBUG_MODE = os.environ.get("DEBUG_MODE", "0") == "1"
 WANDB_TEAM = "freemvmt-london"
 WANDB_PROJECT = "word2vec"
 
 # hot swap essential config from command line
-EPOCHS = int(os.environ.get("EPOCHS", 30))
+EPOCHS = int(os.environ.get("EPOCHS", 5))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 2048))
 
 
@@ -41,7 +41,7 @@ CONFIG = {
     "batch_size": BATCH_SIZE,  # batch size for training, validation, and test
     "learning_rate": 1e-2,  # initial lr for Adam (may want to decrease if not using scheduler)
     "use_scheduler": True,  # whether to step lr down linearly over epochs
-    "embedding_dimensions": 300,
+    "embedding_dimensions": 100,
     "embedding_max_norm": 1.0,
     "train_proportion": 0.9,  # proportion of dataset to use for training
     "val_proportion": 0.05,  # proportion of dataset to use for validation

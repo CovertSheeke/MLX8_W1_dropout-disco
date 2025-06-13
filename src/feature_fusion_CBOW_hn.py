@@ -4,8 +4,6 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import wandb
 import numpy as np
-import os
-import sys
 from tqdm import tqdm
 import json
 
@@ -31,22 +29,34 @@ with open(TITLE_VOCAB_FILE, "r") as f:
 with open(TITLE_EMBED_FILE, "rb") as f:
     title_embeddings = torch.load(f)
 
+
 # --- Dataset ---
 class HNRegressionDataset(Dataset):
     def __init__(self, parquet_path):
         df = pd.read_parquet(parquet_path)
-        self.scores = df['score'].values.astype(np.float32)
-        self.domain_ids = df['domain_id'].values.astype(np.int64)
+        self.scores = df["score"].values.astype(np.float32)
+        self.domain_ids = df["domain_id"].values.astype(np.int64)
         # Handle author_id if present, else encode as categorical
-        if 'author_id' in df.columns:
-            self.author_ids = df['author_id'].values.astype(np.int64)
+        if "author_id" in df.columns:
+            self.author_ids = df["author_id"].values.astype(np.int64)
         else:
-            self.author_ids = df['author'].astype("category").cat.codes.values.astype(np.int64)
+            self.author_ids = (
+                df["author"].astype("category").cat.codes.values.astype(np.int64)
+            )
         # Map titles to embeddings
-        self.title_embeddings = np.array([
-            np.mean([title_embeddings[title_vocab.get(word, 0)] for word in title.split()], axis=0)
-            for title in df['title']
-        ], dtype=np.float32)
+        self.title_embeddings = np.array(
+            [
+                np.mean(
+                    [
+                        title_embeddings[title_vocab.get(word, 0)]
+                        for word in title.split()
+                    ],
+                    axis=0,
+                )
+                for title in df["title"]
+            ],
+            dtype=np.float32,
+        )
 
     def __len__(self):
         return len(self.scores)
@@ -59,14 +69,19 @@ class HNRegressionDataset(Dataset):
         }
         return features, self.scores[idx]
 
+
 def collate_fn(batch):
     features, targets = zip(*batch)
     targets = torch.tensor(targets, dtype=torch.float32)
     features_stacked = {
-        k: torch.tensor([f[k] for f in features], dtype=torch.float32 if k == "title_embedding" else torch.long)
+        k: torch.tensor(
+            [f[k] for f in features],
+            dtype=torch.float32 if k == "title_embedding" else torch.long,
+        )
         for k in features[0]
     }
     return features_stacked, targets
+
 
 # --- Model ---
 class FeatureFusionRegressionModel(nn.Module):
@@ -97,16 +112,20 @@ class FeatureFusionRegressionModel(nn.Module):
         out = self.mlp(x)
         return out.squeeze(-1)
 
+
 # --- Trainer ---
 def train_and_eval():
-    wandb.init(project="feature-fusion-hn-upvotes", config={
-        "domain_embed_dim": DOMAIN_EMBED_DIM,
-        "author_embed_dim": AUTHOR_EMBED_DIM,
-        "hidden_dim": HIDDEN_DIM,
-        "epochs": EPOCHS,
-        "batch_size": BATCH_SIZE,
-        "lr": LR,
-    })
+    wandb.init(
+        project="feature-fusion-hn-upvotes",
+        config={
+            "domain_embed_dim": DOMAIN_EMBED_DIM,
+            "author_embed_dim": AUTHOR_EMBED_DIM,
+            "hidden_dim": HIDDEN_DIM,
+            "epochs": EPOCHS,
+            "batch_size": BATCH_SIZE,
+            "lr": LR,
+        },
+    )
     config = wandb.config
 
     # Get vocab sizes from data using max()+1 for correct embedding size
@@ -137,7 +156,9 @@ def train_and_eval():
 
     train_ds = HNRegressionDataset("train_tmp.parquet")
     val_ds = HNRegressionDataset("val_tmp.parquet")
-    train_dl = DataLoader(train_ds, batch_size=config.batch_size, shuffle=True, collate_fn=collate_fn)
+    train_dl = DataLoader(
+        train_ds, batch_size=config.batch_size, shuffle=True, collate_fn=collate_fn
+    )
     val_dl = DataLoader(val_ds, batch_size=config.batch_size, collate_fn=collate_fn)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -156,15 +177,22 @@ def train_and_eval():
         model.train()
         train_losses = []
         for features, targets in tqdm(train_dl, desc=f"Epoch {epoch} [train]"):
-            features = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in features.items()}
+            features = {
+                k: v.to(device) if isinstance(v, torch.Tensor) else v
+                for k, v in features.items()
+            }
             targets = targets.to(device)
             # Debug: check for out-of-bounds indices
             for name, vocab_size in [
                 ("domain_id", domain_vocab_size),
                 ("author_id", author_vocab_size),
             ]:
-                if torch.any(features[name] >= vocab_size) or torch.any(features[name] < 0):
-                    print(f"Out-of-bounds index in {name}: min={features[name].min().item()}, max={features[name].max().item()}, vocab_size={vocab_size}")
+                if torch.any(features[name] >= vocab_size) or torch.any(
+                    features[name] < 0
+                ):
+                    print(
+                        f"Out-of-bounds index in {name}: min={features[name].min().item()}, max={features[name].max().item()}, vocab_size={vocab_size}"
+                    )
                     raise ValueError(f"Out-of-bounds index in {name}")
             optimizer.zero_grad()
             preds = model(features)
@@ -178,15 +206,22 @@ def train_and_eval():
         val_losses = []
         with torch.no_grad():
             for features, targets in tqdm(val_dl, desc=f"Epoch {epoch} [val]"):
-                features = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in features.items()}
+                features = {
+                    k: v.to(device) if isinstance(v, torch.Tensor) else v
+                    for k, v in features.items()
+                }
                 targets = targets.to(device)
                 # Debug: check for out-of-bounds indices
                 for name, vocab_size in [
                     ("domain_id", domain_vocab_size),
                     ("author_id", author_vocab_size),
                 ]:
-                    if torch.any(features[name] >= vocab_size) or torch.any(features[name] < 0):
-                        print(f"Out-of-bounds index in {name}: min={features[name].min().item()}, max={features[name].max().item()}, vocab_size={vocab_size}")
+                    if torch.any(features[name] >= vocab_size) or torch.any(
+                        features[name] < 0
+                    ):
+                        print(
+                            f"Out-of-bounds index in {name}: min={features[name].min().item()}, max={features[name].max().item()}, vocab_size={vocab_size}"
+                        )
                         raise ValueError(f"Out-of-bounds index in {name}")
                 preds = model(features)
                 loss = criterion(preds, targets)
@@ -197,6 +232,7 @@ def train_and_eval():
         print(f"Epoch {epoch}: train_loss={train_loss:.4f} val_loss={val_loss:.4f}")
 
     wandb.finish()
+
 
 if __name__ == "__main__":
     train_and_eval()
