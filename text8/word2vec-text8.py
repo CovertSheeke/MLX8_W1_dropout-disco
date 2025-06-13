@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 import wandb
 from dotenv import load_dotenv
+import pandas as pd  # added for DataFrame evaluation
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -294,6 +295,23 @@ def analogy_vector_length(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
     print(f"Vector length for '{word_a} - {word_b} + {word_c} - {word_d}': {length:.6f}")
     return length
 
+def evaluate_similarity_dataframe(emb_matrix, model_name, word2idx, idx2word, anchors, topk=10):
+    import torch.nn.functional as F
+    results = []
+    for anchor in anchors:
+        if anchor not in word2idx:
+            continue
+        anchor_idx = word2idx[anchor]
+        anchor_emb = emb_matrix[anchor_idx].unsqueeze(0)
+        sims = F.cosine_similarity(anchor_emb, emb_matrix)
+        vals, idxs = sims.topk(topk+1)  # include self
+        filtered = [(idx2word[i], v.item()) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != anchor]
+        filtered = filtered[:topk]
+        for word, score in filtered:
+            results.append({"model": model_name, "anchor": anchor, "closest_word": word, "similarity": score})
+    df = pd.DataFrame(results)
+    return df
+
 def word2vec_tests(model_path):
     print("Loading model checkpoint...")
     checkpoint = torch.load(model_path)
@@ -302,15 +320,16 @@ def word2vec_tests(model_path):
     word2idx = checkpoint['word2idx']
     idx2word = checkpoint['idx2word']
 
-    # Only call most_similar, don't print its return value
+    print("SGNS Model Test:")
     most_similar(sgns_emb, 'king', word2idx, idx2word, TOP_K)
     most_similar(sgns_emb, 'queen', word2idx, idx2word, TOP_K)
+
+    print("CBOW Model Test:")
     most_similar(cbow_emb, 'king', word2idx, idx2word, TOP_K)
     most_similar(cbow_emb, 'queen', word2idx, idx2word, TOP_K)
 
-    # Analogy: king - man + woman ~= queen
+    print("SGNS Model Analogy Test:")
     def analogy(emb_matrix, word_a, word_b, word_c, word2idx, idx2word, k=TOP_K):
-        # 1. The formula is correct: emb(word_a) - emb(word_b) + emb(word_c)
         vec = emb_matrix[word2idx[word_a]] - emb_matrix[word2idx[word_b]] + emb_matrix[word2idx[word_c]]
         sims = F.cosine_similarity(vec.unsqueeze(0), emb_matrix)
         vals, idxs = sims.topk(k+3)
@@ -323,17 +342,29 @@ def word2vec_tests(model_path):
                 result.append((idx2word[i], get_val(v)))
             if len(result) == k:
                 break
-        print(f"Analogy '{word_a} - {word_b} + {word_c}':")
+        print(f"Analogy '{word_a} - {word_b} + {word_c}' results:")
         for w, score in result:
             print(f"  {w:15s} {score:.4f}")
         return result
 
     analogy(sgns_emb, 'king', 'man', 'woman', word2idx, idx2word, TOP_K)
+    print("CBOW Model Analogy Test:")
     analogy(cbow_emb, 'king', 'man', 'woman', word2idx, idx2word, TOP_K)
 
-    # Calculate vector length for king - man + woman - queen
+    print("SGNS Model Vector Length:")
     analogy_vector_length(sgns_emb, 'king', 'man', 'woman', 'queen', word2idx)
+    print("CBOW Model Vector Length:")
     analogy_vector_length(cbow_emb, 'king', 'man', 'woman', 'queen', word2idx)
+
+    # New evaluation: build dataframes of closest words for a list of anchors
+    anchors = ["king", "queen", "lawyer", "apple", "cat", "ear", "animal",
+               "city", "clothing", "color", "country", "emotion", "fruit",
+               "professional", "technology"]
+    df_sgns = evaluate_similarity_dataframe(sgns_emb, "sgns", word2idx, idx2word, anchors, topk=10)
+    df_cbow = evaluate_similarity_dataframe(cbow_emb, "cbow", word2idx, idx2word, anchors, topk=10)
+    df_all = pd.concat([df_sgns, df_cbow], ignore_index=True)
+    print("\nEvaluation DataFrame (each row = one closest word result):")
+    print(df_all)
 
 def analogy_similarity(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
     # Compute cosine similarity between (a-b) and (c-d)
