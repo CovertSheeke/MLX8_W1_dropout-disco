@@ -5,6 +5,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 UNK_TOKEN = "<UNK>"
+PAD_TOKEN = "<PAD>"
+DOC_START_TOKEN = "<DOC_START>"
+DOC_END_TOKEN = "<DOC_END>"
 PUNCTUATION_MAP = {
     "<": "<LESS>",
     ">": "<GREATER>",
@@ -72,7 +75,7 @@ def build_vocab(
     """
     word_counts = Counter(tokens)
     # Remove words with frequency below threshold
-    token_list = [UNK_TOKEN] + [
+    token_list = [UNK_TOKEN, PAD_TOKEN, DOC_START_TOKEN, DOC_END_TOKEN] + [
         word for word, count in word_counts.items() if count >= min_freq
     ]
     num_discarded_freq = len(word_counts) - len(token_list)
@@ -122,7 +125,7 @@ def get_tokens_as_indices(tokens: list[str], vocab: dict) -> list[int]:
 
 def get_words_from_indices(indeces: list[int], vocab: dict) -> list[str]:
     """
-    Converts a list of token indeces to a list of token values
+    Converts a list of token indices to a list of token values
     """
     return [
         list(vocab.keys())[list(vocab.values()).index(idx)]
