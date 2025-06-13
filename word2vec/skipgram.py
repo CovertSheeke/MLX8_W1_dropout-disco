@@ -57,6 +57,9 @@ def generate_skipgram_pairs(corpus, context_size):
         if offset == 0:
             continue
         logger.debug(f"Processing offset: {offset}")
+        logger.debug(f"Corpus[0:5]: {corpus[:5]}")
+        logger.debug(f"Context size: {context_size} length: {len(corpus)}")
+        logger.debug(np.arange(context_size, len(corpus) - context_size))
         # For each offset, get all valid (center, context) pairs
         center_indices = np.arange(context_size, len(corpus) - context_size)
         context_indices = center_indices + offset
