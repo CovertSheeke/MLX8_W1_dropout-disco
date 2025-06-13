@@ -67,6 +67,9 @@ class Word2VecTrainer:
         # ensure model directory exists
         os.makedirs(self.model_dir, exist_ok=True)
 
+        # build reverse vocab lookup (where vocab is id_by_word)
+        self.word_by_id = {idx: token for token, idx in self.vocab.items()}
+
         # some of the below could be exposed as args in order to generalise the class further
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -155,45 +158,57 @@ class Word2VecTrainer:
         epoch_loss = np.mean(running_loss)
         self.loss["val"].append(epoch_loss)
 
-    # FIXME: eval logic seems to only consider probe words when computing nearest neighbour, not entire vocab!
     def _eval_model(self):
         """
-        Log nearest-neighbour words for a few random+preset probes.
+        Log top-k nearest-neighbour words for each probe word among entire vocabulary.
         """
         self.model.eval()
 
-        # assemble probe word list
-        random_words = random.sample(list(self.vocab), k=min(5, len(self.vocab)))
+        # assemble list of probe word indices
+        random_words = random.sample(list(self.vocab), k=min(10, len(self.vocab)))
         probe_words = list(set(random_words) | set(CHOICE_WORDS_TO_EVALUATE))
-
-        # keep only words that survived any pruning in build_vocab
-        valid_words: list[str] = [w for w in probe_words if w in self.vocab]
-        if not valid_words:
-            logger.warning("No valid probe words found in vocab; skipping evaluation.")
-            return
-
-        word_indices = torch.tensor(
+        valid_words = [w for w in probe_words if w in self.vocab]
+        valid_word_indices = torch.tensor(
             [self.vocab[w] for w in valid_words], device=self.device
         )
 
-        # compute pairwise cosine similarities
+        logger.info(
+            f"Computing pairwise cosine similarities for {len(valid_word_indices)} words..."
+        )
         with torch.no_grad():
-            embeds = torch.nn.functional.normalize(
-                self.model.embeddings(word_indices), p=2, dim=1
-            )
-            sim = embeds @ embeds.T
+            # read: V = vocab size, D = embedding dimension, N = no. of valid probe words
+            # normalise all embeddings to unit length (row-wise w/ Euclidean norm)
+            all_embeds = self.model.embeddings.weight  # (V, D)
+            all_embeds_norm = torch.nn.functional.normalize(
+                all_embeds, p=2, dim=1
+            )  # (V, D)
 
-        # extract neighbours
-        max_k = min(K_NEIGHBOURS, len(valid_words) - 1)  # exclude self from neighbours
-        for i, word in enumerate(valid_words):
-            if max_k == 0:
-                neighbours = []
-            else:
-                # argsort is easier to reason about than topk here
-                idx_sorted = sim[i].argsort(descending=True)
-                idx_sorted = [int(j) for j in idx_sorted if j != i][:max_k]
-                neighbours = [valid_words[j] for j in idx_sorted]
-            logger.info(f"Nearest neighbours for '{word}': {neighbours}")
+            # separately normalise probe word embeddings
+            valid_word_embeds = self.model.embeddings(valid_word_indices)  # (N, D)
+            # we normalise each embedding to unit length (row-wise w/ Euclidean norm)
+            valid_word_embeds_norm = torch.nn.functional.normalize(
+                valid_word_embeds, p=2, dim=1
+            )  # (N, D)
+            # @ is the dot product operator - this yields a matrix which gives the cosine similarity (a float in [-1,1])
+            # of each probe word (rows), against each vocab word (columns)
+            sim = (
+                valid_word_embeds_norm @ all_embeds_norm.T
+            )  # (N, D) @ (D, V) -> (N, V)
+            topk_vals, topk_idx = sim.topk(k=K_NEIGHBOURS + 1, dim=1)  # (N, k)
+
+            # TODO: add some nice wandb logging (e.g. a table w/ prechosen probes and nearest neighbour per epoch)
+            for probe_idx, (vals, ids) in enumerate(zip(topk_vals, topk_idx)):
+                probe_word = valid_words[probe_idx]
+
+                # build a single multiline block for the console
+                block = [f"\nNearest neighbours for '{probe_word}':"]
+                for sim_val, id in zip(vals.cpu(), ids.cpu()):
+                    word = self.word_by_id[int(id)]
+                    if word == probe_word:
+                        # skip the probe word itself
+                        continue
+                    block.append(f"  {word:<15} ({sim_val:.4f})")
+                logger.info("\n".join(block))
 
     def _save_checkpoint(self, epoch):
         """Save model checkpoint to `self.model_dir` directory"""

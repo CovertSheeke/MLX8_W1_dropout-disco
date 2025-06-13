@@ -25,6 +25,9 @@ TEXT8_EXPECTED_LENGTH = 100_000_000  # text8 is expected to be 100 million chars
 TITLES_FILE = "hn_posts_titles.parquet"
 MINIMAL_FETCH_ONLY_TITLES = True
 
+# include a debug mode - in which case we only load a fraction of text8 (for very short runs)
+DEBUG_MODE = os.environ.get("DEBUG_MODE", "0") == "1"
+
 
 # custom map-style dataset for CBOW
 class CBOWDataset(Dataset):
@@ -86,7 +89,14 @@ def build_cbow_dataset(
     # TODO: consider keeping titles separate, rather than concatening them all and losing boundaries
     # build the big string
     with open(text8_path, "r", encoding="utf-8") as f:
-        corpus_txt = f.read() + " " + hn_titles
+        if DEBUG_MODE:
+            # only read a small fraction of text8 for debugging
+            corpus_txt = f.read(TEXT8_EXPECTED_LENGTH // 100)
+            logger.debug(
+                f"Only using first {TEXT8_EXPECTED_LENGTH // 100} chars of text8."
+            )
+        else:
+            corpus_txt = f.read() + " " + hn_titles
 
     tokens = tokenise(corpus_txt)
     logger.info(f"Produced tokenised corpus of {len(tokens)} tokens.")
