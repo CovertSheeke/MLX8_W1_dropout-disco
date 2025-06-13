@@ -59,9 +59,16 @@ def generate_skipgram_pairs(corpus, context_size):
         logger.debug(f"Processing offset: {offset}")
         logger.debug(f"Corpus[0:5]: {corpus[:5]}")
         logger.debug(f"Context size: {context_size} length: {len(corpus)}")
-        logger.debug(np.arange(context_size, len(corpus) - context_size))
-        # For each offset, get all valid (center, context) pairs
-        center_indices = np.arange(context_size, len(corpus) - context_size)
+        logger.debug(f"Type of corpus: {type(corpus)}, dtype: {corpus.dtype}")
+        logger.debug(f"Type of context_size: {type(context_size)}, value: {context_size}")
+        
+        try:
+            logger.debug(np.arange(context_size, len(corpus) - context_size))
+            # For each offset, get all valid (center, context) pairs
+            center_indices = np.arange(context_size, len(corpus) - context_size)
+        except Exception as e:
+            logger.error(f"Error generating center_indices for offset {offset}: {e}")
+            continue
         context_indices = center_indices + offset
         logger.debug(f"center_indices[:5]: {center_indices[:5]}, context_indices[:5]: {context_indices[:5]}")
         logger.debug(f"corpus[center_indices][:5]: {corpus[center_indices][:5]}, corpus[context_indices][:5]: {corpus[context_indices][:5]}")
