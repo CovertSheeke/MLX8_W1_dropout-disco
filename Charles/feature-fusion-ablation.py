@@ -250,6 +250,34 @@ def print_metrics(metrics, prefix=""):
     for k, v in metrics.items():
         print(f"{prefix}{k}: {v:.4f}")
 
+def print_system_info():
+    print("=== System Info ===")
+    # CPU info
+    try:
+        import platform
+        import psutil
+        print("Platform:", platform.platform())
+        print("Processor:", platform.processor())
+        print("CPU count (logical):", psutil.cpu_count(logical=True))
+        print("CPU count (physical):", psutil.cpu_count(logical=False))
+        print("Total RAM (GB):", round(psutil.virtual_memory().total / (1024**3), 2))
+    except Exception as e:
+        print("Could not get CPU/memory info:", e)
+    # GPU info
+    if torch.cuda.is_available():
+        try:
+            gpu_idx = torch.cuda.current_device()
+            print("CUDA device count:", torch.cuda.device_count())
+            print("CUDA device name:", torch.cuda.get_device_name(gpu_idx))
+            print("CUDA capability:", torch.cuda.get_device_capability(gpu_idx))
+            print("CUDA memory total (GB):", round(torch.cuda.get_device_properties(gpu_idx).total_memory / (1024**3), 2))
+            print("CUDA memory allocated (GB):", round(torch.cuda.memory_allocated(gpu_idx) / (1024**3), 2))
+            print("CUDA memory reserved (GB):", round(torch.cuda.memory_reserved(gpu_idx) / (1024**3), 2))
+        except Exception as e:
+            print("Could not get CUDA info:", e)
+    else:
+        print("CUDA not available.")
+
 def main():
     parser = argparse.ArgumentParser(description="Fusion model to predict HN upvotes from title text + extra features")
     parser.add_argument("--train", action="store_true", help="Train the fusion model")
@@ -277,6 +305,7 @@ def main():
         sys.exit(0)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
     
     # Load word2vec checkpoint
     print("Loading word2vec checkpoint from:", WORD2VEC_PATH)
