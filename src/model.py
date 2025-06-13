@@ -21,10 +21,6 @@ class CBOWModel(nn.Module):
             embedding_dim=embed_dim,
             max_norm=embed_max_norm,
         )
-        # add in a hidden layer for 'non-linear transformational capability'
-        self.hidden = nn.Linear(embed_dim, embed_dim)
-        # add dropout for regularisation (to prevent overfitting)
-        self.dropout = nn.Dropout(0.1)
         self.linear = nn.Linear(
             in_features=embed_dim,
             out_features=vocab_size,
@@ -36,17 +32,12 @@ class CBOWModel(nn.Module):
         # init embeddings with small random values
         nn.init.uniform_(self.embeddings.weight, -0.1, 0.1)
         # init linear layers (hidden + output) with Glorot uniform (Xavier) initialisation
-        nn.init.xavier_uniform_(self.hidden.weight)
         nn.init.xavier_uniform_(self.linear.weight)
         # init biases to zero, as is standard
-        nn.init.zeros_(self.hidden.bias)
         nn.init.zeros_(self.linear.bias)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         embeds = self.embeddings(inputs)
         bag = embeds.mean(dim=1)
-        # crucially, we use a ReLU activation function to introduce non-linearity
-        hidden = torch.relu(self.hidden(bag))
-        hidden = self.dropout(hidden)
-        logits = self.linear(hidden)
+        logits = self.linear(bag)
         return logits
