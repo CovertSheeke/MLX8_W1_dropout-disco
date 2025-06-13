@@ -1,21 +1,22 @@
-import os
-import zipfile
-import requests
-import random
-from collections import Counter
-import sys
 import argparse
+import os
+import random
+import sys
+import zipfile
+from collections import Counter
 from datetime import datetime
 
+import pandas as pd
+import psutil
+import platform
+import requests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from dotenv import load_dotenv
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-
 import wandb
-from dotenv import load_dotenv
-import pandas as pd  # added for DataFrame evaluation
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -301,9 +302,7 @@ def most_similar(emb_matrix, word, word2idx, idx2word, k=TOP_K):
     sims = F.cosine_similarity(
         emb_matrix[word2idx[word]].unsqueeze(0), emb_matrix)
     vals, idxs = sims.topk(k+1)
-    def get_val(v):
-        return v.item() if hasattr(v, "item") else v
-    results = [(idx2word[i], get_val(v)) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != word][:k]
+    results = [(idx2word[i], v) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != word][:k]
     print(f"Most similar to '{word}':")
     for w, score in results:
         print(f"  {w:15s} {score:.4f}")
@@ -317,7 +316,6 @@ def analogy_vector_length(emb_matrix, word_a, word_b, word_c, word_d, word2idx):
     return length
 
 def evaluate_similarity_dataframe(emb_matrix, model_name, word2idx, idx2word, anchors, topk=10):
-    import torch.nn.functional as F
     results = []
     for anchor in anchors:
         if anchor not in word2idx:
@@ -326,7 +324,7 @@ def evaluate_similarity_dataframe(emb_matrix, model_name, word2idx, idx2word, an
         anchor_emb = emb_matrix[anchor_idx].unsqueeze(0)
         sims = F.cosine_similarity(anchor_emb, emb_matrix)
         vals, idxs = sims.topk(topk+1)  # include self
-        filtered = [(idx2word[i], v.item()) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != anchor]
+        filtered = [(idx2word[i], v) for i, v in zip(idxs.tolist(), vals.tolist()) if idx2word[i] != anchor]
         filtered = filtered[:topk]
         for word, score in filtered:
             results.append({"model": model_name, "anchor": anchor, "closest_word": word, "similarity": score})
@@ -361,11 +359,9 @@ def word2vec_tests(model_path):
         vals, idxs = sims.topk(k+3)
         exclude = {word_a, word_b, word_c}
         result = []
-        def get_val(v):
-            return v.item() if hasattr(v, "item") else v
         for i, v in zip(idxs.tolist(), vals.tolist()):
             if idx2word[i] not in exclude:
-                result.append((idx2word[i], get_val(v)))
+                result.append((idx2word[i], v))
             if len(result) == k:
                 break
         print(f"Analogy '{word_a} - {word_b} + {word_c}' results:")
@@ -407,8 +403,6 @@ def print_system_info():
     print("=== System Info ===")
     # CPU info
     try:
-        import platform
-        import psutil
         print("Platform:", platform.platform())
         print("Processor:", platform.processor())
         print("CPU count (logical):", psutil.cpu_count(logical=True))
