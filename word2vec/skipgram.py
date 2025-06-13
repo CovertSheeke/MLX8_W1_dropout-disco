@@ -9,7 +9,7 @@ import wandb
 import numpy as np
 
 logging.basicConfig(
-    level=logging.INFO,  # or DEBUG, WARNING, etc.
+    level=logging.DEBUG,  # or DEBUG, WARNING, etc.
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
@@ -100,7 +100,11 @@ def build_sgram_dataset(context_size: int = None, txt_8_path: str = "data/text8.
     logger.info("Generating skip-gram pairs")
     logger.info(f"text_token_inds (first 10): {text_token_inds[:10]}")
     logger.info(f"context_size: {context_size}")
-    skipgram_pairs = generate_skipgram_pairs(text_token_inds, context_size)
+    try:
+        skipgram_pairs = generate_skipgram_pairs(text_token_inds, context_size)
+    except Exception as e:
+        logger.error(f"Error generating skipgram pairs: {e}")
+        raise
     logger.info(f"Generated {len(skipgram_pairs)} skip-gram pairs")
 
     logger.info("Finished build_sgram_dataset")
