@@ -6,6 +6,7 @@ import os
 from data import get_text8
 from tokeniser import build_vocab, get_tokens_as_indices, tokenise
 import wandb
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO,  # or DEBUG, WARNING, etc.
@@ -46,12 +47,24 @@ config = {
 
 
 def generate_skipgram_pairs(corpus, context_size):
+    logger.info("Starting generate_skipgram_pairs")
+    logger.debug(f"Corpus length: {len(corpus)}, context_size: {context_size}")
+    # Convert to numpy array for efficient slicing
+    corpus = np.array(corpus)
     pairs = []
-    for i in range(context_size, len(corpus) - context_size):
-        center = corpus[i]
-        context = corpus[i - context_size:i] + corpus[i + 1:i + context_size + 1]
-        for ctx in context:
-            pairs.append((center, ctx))
+    for offset in range(-context_size, context_size + 1):
+        if offset == 0:
+            continue
+        logger.debug(f"Processing offset: {offset}")
+        # For each offset, get all valid (center, context) pairs
+        center_indices = np.arange(context_size, len(corpus) - context_size)
+        context_indices = center_indices + offset
+        logger.debug(f"center_indices[:5]: {center_indices[:5]}, context_indices[:5]: {context_indices[:5]}")
+        logger.debug(f"corpus[center_indices][:5]: {corpus[center_indices][:5]}, corpus[context_indices][:5]: {corpus[context_indices][:5]}")
+        pairs_this_offset = list(zip(corpus[center_indices], corpus[context_indices]))
+        logger.debug(f"Pairs generated for offset {offset}: {pairs_this_offset[:5]} (showing first 5)")
+        pairs.extend(pairs_this_offset)
+    logger.info(f"Finished generate_skipgram_pairs, total pairs: {len(pairs)}")
     return pairs
 
 
@@ -85,6 +98,8 @@ def build_sgram_dataset(context_size: int = None, txt_8_path: str = "data/text8.
     logger.info(f"Converted tokens to indices, total indices: {len(text_token_inds)}")
 
     logger.info("Generating skip-gram pairs")
+    logger.info(f"text_token_inds (first 10): {text_token_inds[:10]}")
+    logger.info(f"context_size: {context_size}")
     skipgram_pairs = generate_skipgram_pairs(text_token_inds, context_size)
     logger.info(f"Generated {len(skipgram_pairs)} skip-gram pairs")
 
